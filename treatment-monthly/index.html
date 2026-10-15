@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Treatment vs Non-Treatment theo tháng — MCVN QA</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#f0f2f8; --s1:#ffffff; --s2:#f6f7fc; --bdr:#e0e5f0;
+    --text:#192941; --t2:#5a7098; --t3:#8999b8;
+    --acc:#e98a4e; --green:#1e8e3e; --red:#d93025; --blue:#1a73e8;
+    --head:#20365f; --grp:#eef2fb; --grp2:#e3e9f6;
+    --gap:16px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0c0d0f; --s1:#161d2e; --s2:#1c2436; --bdr:#2b3550;
+    --text:#e6edf7; --t2:#9fb0cc; --t3:#6a7a98;
+    --acc:#e98a4e; --green:#3ec989; --red:#e05252; --blue:#5b9cf6;
+    --head:#243352; --grp:#1e2740; --grp2:#232d49;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:13px;padding:18px;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--t2);font-size:12px;margin-top:3px}
+  .hdr-right{display:flex;align-items:center;gap:10px}
+  .status{font-size:11px;color:var(--t2);text-align:right;max-width:230px}
+  .btn{background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .btn:hover{border-color:var(--acc);color:var(--acc)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .lbl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+  select{background:var(--s1);border:1px solid var(--bdr);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+  .card{background:var(--s1);border:1px solid var(--bdr);border-radius:12px;padding:16px;margin-bottom:var(--gap)}
+  .card-t{font-size:13px;font-weight:600;margin-bottom:2px}
+  .card-s{font-size:11px;color:var(--t3);margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--bdr);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:var(--head);color:#fff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  thead th:first-child{border-top-left-radius:8px} thead th:last-child{border-top-right-radius:8px}
+  tr.grp-row td{background:var(--grp);font-weight:700}
+  tr.grp-row.overall td{background:var(--grp2)}
+  td.name{padding-left:12px}
+  td.sub{padding-left:30px;color:var(--t2)}
+  .up{color:var(--green);font-weight:600}
+  .down{color:var(--red);font-weight:600}
+  .flat{color:var(--t3)}
+  .muted{color:var(--t3)}
+  canvas{max-height:300px}
+  .warn{color:var(--acc);font-size:11px;margin-top:10px}
+  .empty{text-align:center;color:var(--t2);padding:50px 20px}
+  .foot{color:var(--t3);font-size:11px;text-align:center;margin-top:20px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div>
+      <h1>Treatment vs Non-Treatment theo tháng</h1>
+      <div class="sub">MCVN QA · đếm số record · Có action = agent nằm trong Agent List tháng đó · Không action = ngoài list</div>
+    </div>
+    <div class="hdr-right">
+      <div class="status" id="status" role="status" aria-live="polite" aria-atomic="true">Đang tải…</div>
+      <button class="btn" id="reload" onclick="loadData(true)">⟳ Cập nhật ngay</button>
+    </div>
+  </div>
+
+  <div class="controls" id="controls" style="display:none">
+    <span class="lbl">Tháng</span>
+    <select id="month" onchange="render()"></select>
+    <span class="muted" id="cmpNote"></span>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="card">
+      <div class="card-t">Số record theo nhóm · MoM</div>
+      <div class="card-s">Overall = Treatment + Non-Treatment · % đóng góp = tỷ trọng trên tổng record của tháng</div>
+      <div style="overflow-x:auto"><table id="tbl"></table></div>
+      <div class="warn" id="coverage"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-t">Xu hướng theo tháng — Overall</div>
+      <div class="card-s">Có action vs Không action qua các tháng</div>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <div id="empty" class="empty" style="display:none"></div>
+  <div class="foot">MCVN · Quality Assurance · Data tự cập nhật mỗi 30 phút</div>
+</div>
+
+<script>
+/* ---- Theme sync với dashboard ---- */
+function applyTheme(t){ if(t==='dark'||t==='light'){ document.documentElement.setAttribute('data-theme',t); if(window.DATA && DATA.months && DATA.months.length) render(); } }
+try{ applyTheme(new URLSearchParams(location.search).get('theme')); }catch(e){}
+window.addEventListener('message', function(ev){ var d=ev.data; if(d && d.type==='tqa-theme') applyTheme(d.theme); });
+
+const DATA_URL="data.json";
+let DATA=null, chart=null;
+const SEGS=['Buyer','Seller','Multi'];
+const GROUPS=[
+  {key:'Overall', label:'Overall MCVN', cls:'overall'},
+  {key:'Non',     label:'Non-Treatment', cls:''},
+  {key:'Treat',   label:'Treatment', cls:''}
+];
+const monthLabel = mk => { const m=/^(\d{4})-(\d{2})$/.exec(mk); return m ? ('Th'+(+m[2])+'/'+m[1]) : mk; };
+function themeColors(){ const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  return { grid: dark?'rgba(255,255,255,.08)':'rgba(20,40,80,.08)', tick: dark?'#9fb0cc':'#5a7098' }; }
+
+// giá trị 1 nhóm × segment ở tháng mk
+function gv(mk, gkey, seg){ const d=(DATA.data[mk]||{})[seg]||{treatment:0,non:0};
+  if(gkey==='Treat') return d.treatment||0;
+  if(gkey==='Non')   return d.non||0;
+  return (d.treatment||0)+(d.non||0); }
+function groupTotal(mk, gkey){ return SEGS.reduce((s,seg)=>s+gv(mk,gkey,seg),0); }
+function grand(mk){ return groupTotal(mk,'Overall'); }
+function momCell(cur, prev){
+  if(prev===0 && cur===0) return '<span class="flat">—</span>';
+  if(prev===0) return '<span class="up">mới</span>';
+  const d=(cur-prev)/prev*100;
+  if(Math.abs(d)<0.05) return '<span class="flat">0%</span>';
+  return d>0 ? `<span class="up">+${d.toFixed(1)}% ▲</span>` : `<span class="down">${d.toFixed(1)}% ▼</span>`;
+}
+function contribCell(v, tot){ return tot ? (v/tot*100).toFixed(0)+'%' : '—'; }
+
+function render(){
+  if(!DATA || !DATA.months || !DATA.months.length) return;
+  const months=DATA.months;
+  const sel=document.getElementById('month');
+  let cur = sel.value && months.indexOf(sel.value)>=0 ? sel.value : months[months.length-1];
+  const idx = months.indexOf(cur);
+  const prev = idx>0 ? months[idx-1] : null;
+  document.getElementById('cmpNote').textContent = prev ? ('so với '+monthLabel(prev)) : '(không có tháng trước để so)';
+
+  const gTotCur = grand(cur);
+  let rows='';
+  GROUPS.forEach(g=>{
+    // dòng nhóm (tổng)
+    const gc=groupTotal(cur,g.key), gp=prev?groupTotal(prev,g.key):0;
+    rows += `<tr class="grp-row ${g.cls}"><td>${g.label}</td>`
+      + `<td>${gc.toLocaleString()}</td>`
+      + `<td class="muted">${prev?gp.toLocaleString():'—'}</td>`
+      + `<td>${prev?momCell(gc,gp):'—'}</td>`
+      + `<td>${contribCell(gc,gTotCur)}</td></tr>`;
+    // dòng segment
+    SEGS.forEach(seg=>{
+      const c=gv(cur,g.key,seg), p=prev?gv(prev,g.key,seg):0;
+      rows += `<tr><td class="sub">${seg}</td>`
+        + `<td>${c.toLocaleString()}</td>`
+        + `<td class="muted">${prev?p.toLocaleString():'—'}</td>`
+        + `<td>${prev?momCell(c,p):'—'}</td>`
+        + `<td>${contribCell(c,gTotCur)}</td></tr>`;
+    });
+  });
+  document.getElementById('tbl').innerHTML =
+    `<thead><tr><th>Nhóm</th><th>${monthLabel(cur)}</th><th>${prev?monthLabel(prev):'—'}</th><th>MoM Δ</th><th>% đóng góp</th></tr></thead><tbody>${rows}</tbody>`;
+
+  // chart xu hướng Overall (treatment vs non) qua các tháng
+  const tcv=themeColors();
+  const labels=months.map(monthLabel);
+  const treatSeries=months.map(m=>SEGS.reduce((s,seg)=>s+gv(m,'Treat',seg),0));
+  const nonSeries=months.map(m=>SEGS.reduce((s,seg)=>s+gv(m,'Non',seg),0));
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById('chart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Có action',data:treatSeries,backgroundColor:'#3ec989cc',borderRadius:4},
+      {label:'Không action',data:nonSeries,backgroundColor:(document.documentElement.getAttribute('data-theme')==='dark'?'#5c6a86aa':'#94a3b8cc'),borderRadius:4}
+    ]},
+    options:{responsive:true,
+      plugins:{legend:{labels:{color:tcv.tick,font:{size:11}}}},
+      scales:{x:{stacked:true,grid:{color:tcv.grid},ticks:{color:tcv.tick}},
+        y:{stacked:true,beginAtZero:true,grid:{color:tcv.grid},ticks:{color:tcv.tick}}}}
+  });
+
+  const alm=DATA.agentListMonths||[];
+  const uncovered=months.filter(m=>alm.indexOf(m)<0);
+  document.getElementById('coverage').textContent = uncovered.length
+    ? '⚠️ Agent List không có data các tháng: '+uncovered.map(monthLabel).join(', ')+' → các tháng này 100% "Không action" (chưa đối chiếu được).'
+    : '';
+}
+
+async function loadData(force){
+  const btn=document.getElementById('reload'); if(btn) btn.disabled=true;
+  document.getElementById('status').textContent='Đang tải…';
+  try{
+    const res=await fetch(DATA_URL+'?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const payload=await res.json();
+    if(!payload || !Array.isArray(payload.months)) throw new Error('Dữ liệu không hợp lệ');
+    DATA=payload; window.DATA=DATA;
+    if(DATA.placeholder || !DATA.months || !DATA.months.length){
+      document.getElementById('content').style.display='none';
+      document.getElementById('controls').style.display='none';
+      const e=document.getElementById('empty'); e.style.display='block';
+      e.innerHTML='Chưa có dữ liệu.<br><span style="font-size:11px">Hãy thử cập nhật lại sau hoặc liên hệ người phụ trách dữ liệu.</span>';
+      document.getElementById('status').textContent = DATA.lastUpdatedText ? ('Cập nhật: '+DATA.lastUpdatedText):'—';
+      return;
+    }
+    // fill month selector (mới nhất trên đầu)
+    const sel=document.getElementById('month');
+    const cur=sel.value;
+    sel.innerHTML=DATA.months.slice().reverse().map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+    if(cur && DATA.months.indexOf(cur)>=0) sel.value=cur;
+    document.getElementById('empty').style.display='none';
+    document.getElementById('controls').style.display='flex';
+    document.getElementById('content').style.display='block';
+    render();
+    const c=DATA.counts||{};
+    document.getElementById('status').innerHTML='Cập nhật: '+(DATA.lastUpdatedText||'—')+'<br>'+(c.rowsUsed||0).toLocaleString()+' record · '+DATA.months.length+' tháng';
+  }catch(e){
+    const hasData=DATA && !DATA.placeholder && Array.isArray(DATA.months) && DATA.months.length;
+    document.getElementById('status').textContent=hasData
+      ? 'Chưa tải được bản mới · đang hiển thị dữ liệu lần trước.'
+      : 'Không tải được dữ liệu. Hãy thử lại.';
+    const el=document.getElementById('empty');
+    el.style.display=hasData?'none':'block';
+    if(!hasData){
+      document.getElementById('content').style.display='none';
+      document.getElementById('controls').style.display='none';
+      el.textContent='Không tải được dữ liệu. Bấm Cập nhật ngay để thử lại hoặc liên hệ người phụ trách.';
+    }
+  }finally{ if(btn) btn.disabled=false; }
+}
+window.onload=()=>loadData(false);
+</script>
+<script defer src="/assets/dashboard-data-privacy.js?v=20261015-1"></script>
+</body>
+</html>

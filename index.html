@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TQA MCVN — Đăng nhập</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+
+<!-- Preconnect tới CDN để rút ngắn bắt tay DNS/TLS -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+<!-- Supabase JS (đăng nhập + session) — defer: không chặn hiển thị trang -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #ffffff;
+    --gray-50: #f8f9fa;
+    --gray-100: #f1f3f5;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-500: #adb5bd;
+    --gray-700: #495057;
+    --gray-900: #212529;
+    --accent: #1a73e8;
+    --accent-light: #e8f0fe;
+    --accent-border: #c5d8fc;
+    --accent-dark: #1558b0;
+    --danger: #d93025;
+    --danger-light: #fce8e6;
+    --danger-border: #f6c9c4;
+    --radius: 10px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--gray-50);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%; max-width: 380px;
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: 16px; padding: 36px 32px; box-shadow: var(--shadow-md);
+  }
+
+  .card-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+  .logo-mark {
+    width: 38px; height: 38px; border-radius: 9px; background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 600; letter-spacing: -0.3px; flex-shrink: 0;
+  }
+  .logo-mark { background: var(--accent-light); border: 1px solid var(--accent-border); font-size: 18px; line-height: 1; }
+  .brand-name { font-size: 14px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
+  .brand-sub { font-size: 11px; color: var(--gray-500); font-weight: 400; }
+  .divider { height: 1px; background: var(--gray-200); margin-bottom: 28px; }
+
+  .card-title { font-size: 20px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; letter-spacing: -0.3px; }
+  .card-sub { font-size: 13px; color: var(--gray-700); margin-bottom: 20px; line-height: 1.5; }
+
+  .field-label { font-size: 12px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; display: block; }
+  .email-input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius); font-size: 14px; font-family: inherit;
+    color: var(--gray-900); margin-bottom: 14px;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .email-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+
+  .primary-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 11px 16px; background: var(--accent);
+    border: 1.5px solid var(--accent); border-radius: var(--radius);
+    font-size: 14px; font-weight: 500; color: #fff; cursor: pointer;
+    transition: background 0.12s; font-family: inherit; box-shadow: var(--shadow-sm);
+  }
+  .primary-btn:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .primary-btn:active { transform: scale(0.99); }
+
+  .alt-row { text-align: center; margin-top: 14px; }
+  .link-btn {
+    background: none; border: none; color: var(--accent); font-size: 12.5px;
+    cursor: pointer; text-decoration: underline; font-family: inherit; padding: 4px;
+  }
+  .link-btn:hover { color: var(--accent-dark); }
+
+  .org-note {
+    margin-top: 16px; padding: 10px 12px; background: var(--accent-light);
+    border: 1px solid var(--accent-border); border-radius: var(--radius);
+    font-size: 12px; color: var(--accent-dark); line-height: 1.6;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .info-icon { width: 14px; height: 14px; margin-top: 1px; flex-shrink: 0; color: var(--accent); }
+
+  .error-note {
+    margin-top: 14px; padding: 10px 12px; background: var(--danger-light);
+    border: 1px solid var(--danger-border); border-radius: var(--radius);
+    font-size: 12px; color: var(--danger); line-height: 1.6; display: none;
+  }
+  .error-note.visible { display: block; }
+
+  .footer-note { margin-top: 24px; text-align: center; font-size: 11px; color: var(--gray-500); }
+
+  .state-panel {
+    display: none; flex-direction: column; align-items: center; gap: 14px;
+    padding: 16px 0; text-align: center;
+  }
+  .state-panel.visible { display: flex; }
+  .spinner {
+    width: 28px; height: 28px; border: 2.5px solid var(--gray-200);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-label { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+  .mail-icon {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mail-icon svg { width: 22px; height: 22px; color: var(--accent); }
+</style>
+<script src="/assets/tqa-i18n.js" defer></script>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-brand">
+    <div class="logo-mark" aria-hidden="true">✨</div>
+    <div>
+      <div class="brand-name">Team QA MCVN</div>
+      <div class="brand-sub">Shopee Vietnam CS</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Đăng nhập bằng mật khẩu -->
+  <div id="login-form">
+    <div class="card-title">Đăng nhập</div>
+    <div class="card-sub">Đăng nhập bằng email công ty và mật khẩu.</div>
+
+    <label class="field-label" for="email">Email</label>
+    <input class="email-input" id="email" type="email" inputmode="email"
+           autocomplete="email" placeholder="ten.ban@shopeemobile-external.com" />
+
+    <label class="field-label" for="password">Mật khẩu</label>
+    <input class="email-input" id="password" type="password"
+           autocomplete="current-password" placeholder="Mật khẩu" />
+
+    <button class="primary-btn" id="login-btn">Đăng nhập</button>
+
+    <div class="alt-row">
+      <button class="link-btn" id="email-login-link">Quên mật khẩu?</button>
+    </div>
+
+    <div class="org-note">
+      <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      Đăng nhập bằng <strong>email công ty Shopee</strong> của bạn.
+    </div>
+
+    <div class="error-note" id="error-note"></div>
+  </div>
+
+  <!-- Đặt mật khẩu (lần đầu) -->
+  <div id="setpw-form" style="display:none">
+    <div class="card-title">Đặt mật khẩu</div>
+    <div class="card-sub" id="setpw-sub">Đăng nhập lần đầu thành công! Hãy tạo mật khẩu để lần sau đăng nhập nhanh hơn.</div>
+
+    <label class="field-label" for="np">Mật khẩu mới</label>
+    <input class="email-input" id="np" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" />
+
+    <label class="field-label" for="np2">Nhập lại mật khẩu</label>
+    <input class="email-input" id="np2" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" />
+
+    <button class="primary-btn" id="savepw-btn">Lưu mật khẩu &amp; vào hệ thống</button>
+    <div class="error-note" id="setpw-error"></div>
+  </div>
+
+  <div class="state-panel" id="loading-state">
+    <div class="spinner"></div>
+    <div class="state-label" id="loading-label">Đang xử lý...</div>
+  </div>
+
+  <div class="state-panel" id="sent-state">
+    <div class="mail-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+    <div class="state-label" id="sent-label">Đã gửi link đăng nhập! Mở email và bấm vào liên kết.</div>
+  </div>
+
+  <div class="state-panel" id="success-state">
+    <div class="spinner"></div>
+    <div class="state-label">Đã đăng nhập. Đang chuyển tới dashboard...</div>
+  </div>
+</div>
+
+<script>
+/* ================================================================= *
+ *  CẤU HÌNH                                                          *
+ * ================================================================= */
+const SUPABASE_URL = 'https://ytbcydursrpjqnaalhxc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo';
+const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
+
+/* ================================================================= */
+const $ = (id) => document.getElementById(id);
+let sb; // khởi tạo trong init() sau khi supabase-js (defer) đã tải xong
+
+const PANELS = ['login-form', 'setpw-form', 'loading-state', 'sent-state', 'success-state'];
+function show(id) {
+  PANELS.forEach(p => { $(p).classList.remove('visible'); $(p).style.display = 'none'; });
+  $(id).style.display = (id === 'login-form' || id === 'setpw-form') ? 'block' : 'flex';
+}
+function err(elId, msg) { const el = $(elId); el.textContent = msg; el.classList.add('visible'); }
+function clearErr(elId) { $(elId).classList.remove('visible'); }
+function domainOf(email) { return (email || '').split('@')[1]?.toLowerCase() || ''; }
+
+function readUrlError() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const q = new URLSearchParams(location.search);
+  const desc = h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error');
+  return desc ? decodeURIComponent(desc.replace(/\+/g, ' ')) : '';
+}
+
+// Sau khi có session: kiểm tra domain, rồi quyết định đặt mật khẩu hay vào dashboard.
+async function afterSession(session) {
+  if (!session) { show('login-form'); return; }
+  const email = (session.user.email || '').toLowerCase();
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    await sb.auth.signOut();
+    show('login-form');
+    err('error-note', 'Tài khoản ' + email + ' không được phép.');
+    return;
+  }
+  const passwordSet = session.user.user_metadata && session.user.user_metadata.password_set === true;
+  if (passwordSet) {
+    show('success-state');
+    setTimeout(() => location.replace('dashboard.html?v=20261009-settings-1'), 500);
+  } else {
+    show('setpw-form');       // lần đầu -> bắt đặt mật khẩu
+  }
+}
+
+// Đăng nhập bằng mật khẩu
+async function passwordLogin() {
+  clearErr('error-note');
+  const email = ($('email').value || '').trim().toLowerCase();
+  const password = $('password').value || '';
+  if (!email || email.indexOf('@') < 0) { err('error-note', 'Vui lòng nhập email hợp lệ.'); return; }
+  if (!password) { err('error-note', 'Vui lòng nhập mật khẩu.'); return; }
+
+  $('loading-label').textContent = 'Đang đăng nhập...';
+  show('loading-state');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    show('login-form');
+    err('error-note', 'Sai email hoặc mật khẩu. Nếu quên mật khẩu, bấm "Quên mật khẩu?" bên dưới.');
+    return;
+  }
+  await afterSession(data.session);
+}
+
+// Gửi link đăng nhập qua email (lần đầu / quên mật khẩu)
+async function sendMagicLink() {
+  clearErr('error-note');
+  const email = ($('email').value || '').trim().toLowerCase();
+  if (!email || email.indexOf('@') < 0) { err('error-note', 'Nhập email của bạn vào ô Email trước đã.'); return; }
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    err('error-note', 'Email phải thuộc @' + ALLOWED_DOMAINS.join(' hoặc @') + '.');
+    return;
+  }
+  $('loading-label').textContent = 'Đang gửi link...';
+  show('loading-state');
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + '/' } });
+  if (error) {
+    show('login-form');
+    const m = (error.message || '').toLowerCase();
+    if (m.includes('cap quyen') || m.includes('not allowed') || m.includes('database error')) {
+      err('error-note', 'Email này chưa được cấp quyền truy cập. Vui lòng liên hệ team TQA để được thêm.');
+    } else {
+      err('error-note', 'Không gửi được link: ' + error.message);
+    }
+    return;
+  }
+  $('sent-label').textContent = 'Đã gửi link đăng nhập tới ' + email + '. Mở email và bấm vào liên kết.';
+  show('sent-state');
+}
+
+// Lưu mật khẩu lần đầu
+async function savePassword() {
+  clearErr('setpw-error');
+  const p1 = $('np').value || '', p2 = $('np2').value || '';
+  if (p1.length < 6) { err('setpw-error', 'Mật khẩu cần ít nhất 6 ký tự.'); return; }
+  if (p1 !== p2) { err('setpw-error', 'Hai ô mật khẩu chưa khớp.'); return; }
+
+  $('loading-label').textContent = 'Đang lưu...';
+  show('loading-state');
+  const { error } = await sb.auth.updateUser({ password: p1, data: { password_set: true } });
+  if (error) {
+    show('setpw-form');
+    err('setpw-error', 'Không lưu được: ' + error.message);
+    return;
+  }
+  show('success-state');
+  setTimeout(() => location.replace('dashboard.html?v=20261009-settings-1'), 500);
+}
+
+// supabase-js được nạp bằng defer nên đã sẵn sàng trước khi DOMContentLoaded chạy.
+function loginClient() {
+  if (!sb) {
+    if (!window.supabase || !window.supabase.createClient) throw new Error('Chưa tải được dịch vụ đăng nhập. Tải lại trang để thử lại.');
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return sb;
+}
+async function runLoginAction(action, panel, errorId) {
+  try { loginClient(); await action(); }
+  catch (error) { show(panel); err(errorId, 'Không kết nối được dịch vụ đăng nhập. '+(error.message||'Vui lòng thử lại.')); }
+}
+document.addEventListener('DOMContentLoaded', async function init() {
+  const login = () => runLoginAction(passwordLogin, 'login-form', 'error-note');
+  const save = () => runLoginAction(savePassword, 'setpw-form', 'setpw-error');
+  $('login-btn').addEventListener('click', login);
+  $('email-login-link').addEventListener('click', () => runLoginAction(sendMagicLink, 'login-form', 'error-note'));
+  $('savepw-btn').addEventListener('click', save);
+  $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+  $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+
+  const urlErr = readUrlError();
+  if (urlErr) {
+    show('login-form');
+    err('error-note', 'Đăng nhập không thành công. (' + urlErr + ')');
+    history.replaceState(null, '', location.pathname);
+  }
+
+  try {
+    const { data, error } = await loginClient().auth.getSession();
+    if (error) throw error;
+    if (data && data.session) { await afterSession(data.session); }
+    else { show('login-form'); }
+  } catch (error) {
+    show('login-form');
+    err('error-note', 'Không kiểm tra được phiên đăng nhập. '+(error.message||'Vui lòng thử lại.'));
+  }
+});
+</script>
+
+</body>
+</html>

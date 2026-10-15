@@ -1,0 +1,7 @@
+*.json
+*.jsonl
+*.gs
+*.sql
+*.map
+*.env
+node_modules/

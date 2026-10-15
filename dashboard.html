@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
+<script src="/assets/dashboard-data-privacy.js?v=20261015"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TQA MCVN — Home</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/loading-snake.css?v=20260922-1">
+<script defer src="/assets/loading-snake.js?v=20260922-5"></script>
+<script defer src="/assets/dashboard-presence.js?v=20260924-2"></script>
+
+<!-- Ẩn toàn bộ nội dung cho tới khi xác thực xong (chống lộ dữ liệu). -->
+<style id="gate">body { visibility: hidden; }.mascot-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:16px}
+.mascot-option{position:relative;cursor:pointer;min-width:0}
+.mascot-option input{position:absolute;opacity:0;width:1px;height:1px}
+.mascot-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:2px solid var(--gray-200);border-radius:14px;color:var(--gray-900);font-size:13px;font-weight:600}
+.mascot-preview{display:block;width:84px;height:84px;background-size:300% 300%;background-position:50% 50%;background-repeat:no-repeat}
+.mascot-option:hover .mascot-tile{border-color:var(--accent)}
+.mascot-option input:checked + .mascot-tile{border-color:var(--accent);background-color:var(--accent-light);color:var(--accent-text)}
+.mascot-option input:focus-visible + .mascot-tile{outline:3px solid var(--accent);outline-offset:3px}
+</style>
+
+<!-- Preconnect tới CDN để rút ngắn bắt tay DNS/TLS -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+<!-- Supabase JS (kiểm tra session + lấy role) — defer: không chặn hiển thị trang -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+#user-setup-nav[hidden]{display:none!important}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white: #ffffff;
+  --gray-50: #f8f9fa;
+  --gray-100: #f1f3f5;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-900: #212529;
+  --accent: #1a73e8;
+  --accent-light: #e8f0fe;
+  --accent-border: #c5d8fc;
+  --accent-dark: #1558b0;
+  --accent-text: #1a73e8;
+  --success: #1e8e3e;
+  --success-light: #e6f4ea;
+  --danger: #d93025;
+  --danger-light: #fce8e6;
+  --warning: #e37400;
+  --warning-light: #fef3e2;
+  --purple: #6f3fc5;
+  --purple-light: #f0eafb;
+  --radius: 10px;
+  --radius-card: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--gray-50);
+  min-height: 100vh;
+  display: flex;
+  color: var(--gray-900);
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 18px;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 12px;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.brand-name { font-size: 13px; font-weight: 600; color: var(--gray-900); line-height: 1.3; }
+.brand-sub { font-size: 11px; color: var(--gray-500); }
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 10px 18px 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 18px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  border-left: 2.5px solid transparent;
+  transition: background 0.1s, color 0.1s;
+  user-select: none;
+  text-decoration: none;
+}
+
+.nav-item:hover { background: var(--gray-50); color: var(--gray-900); }
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border-left-color: var(--accent);
+  font-weight: 500;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-item.active .nav-icon { opacity: 1; }
+
+/* ---- Nhóm xổ xuống (accordion) ---- */
+.nav-group-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 18px; font-size: 13px; color: var(--gray-700);
+  cursor: pointer; user-select: none; border-left: 2.5px solid transparent;
+  transition: background 0.1s, color 0.1s;
+}
+.nav-group-head:hover { background: var(--gray-50); color: var(--gray-900); }
+.nav-group-head .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.grp-chev { width: 14px; height: 14px; margin-left: auto; opacity: 0.55; transition: transform 0.16s; flex-shrink: 0; }
+.nav-group.open > .nav-group-head .grp-chev { transform: rotate(180deg); }
+.nav-group-body { display: none; }
+.nav-group.open > .nav-group-body { display: block; }
+.nav-item.nav-sub { padding-left: 39px; font-size: 12.5px; }
+body.sb-collapsed .grp-chev { display: none; }
+body.sb-collapsed .nav-group-body { display: none !important; }
+body.sb-collapsed .nav-group-head { justify-content: center; padding-left: 0; padding-right: 0; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 14px 18px 0;
+  border-top: 1px solid var(--gray-200);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.1s;
+}
+
+.user-chip:hover { background: var(--gray-50); }
+
+.user-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  flex-shrink: 0;
+  border: 1.5px solid var(--accent-border);
+  overflow: hidden;
+}
+
+.user-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+.user-name { font-size: 12px; font-weight: 500; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.user-role-txt { font-size: 10px; color: var(--gray-500); }
+
+.logout-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: background 0.1s, color 0.1s;
+}
+.logout-btn:hover { background: var(--danger-light); color: var(--danger); }
+.logout-btn svg { width: 15px; height: 15px; }
+
+/* MAIN */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HERO */
+.hero {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 30px 40px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+}
+
+.hero-top { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+.hero-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  border: 2.5px solid var(--accent-border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hero-info { display: flex; flex-direction: column; align-items: center; }
+.hero-greeting { font-size: 13px; color: var(--gray-500); margin-bottom: 3px; }
+.hero-name { font-size: 22px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; letter-spacing: -0.3px; line-height: 1.2; }
+.hero-meta { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.hero-email { font-size: 12px; color: var(--gray-500); }
+
+/* Hồ sơ trong Cài đặt */
+.profile-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--accent-dark); border: 2px solid var(--accent-border); overflow: hidden; flex-shrink: 0; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-file-btn { font-size: 12.5px; color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+.hero-role-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border: 1px solid var(--accent-border);
+}
+
+.quote-block {
+  padding: 14px 20px;
+  background: var(--gray-50);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--gray-200);
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.quote-text {
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.75;
+  font-style: italic;
+}
+
+.quote-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.quote-author { font-size: 11px; color: var(--gray-500); }
+
+.quote-tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.tag-mindset { background: var(--accent-light); color: var(--accent-dark); }
+.tag-kientr { background: var(--warning-light); color: var(--warning); }
+.tag-kyluat { background: var(--purple-light); color: var(--purple); }
+.tag-teamwork { background: var(--success-light); color: var(--success); }
+.tag-caodao { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-300); }
+
+/* CONTENT */
+.content { padding: 28px 40px; flex: 1; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 12px;
+}
+
+/* CSAT CARD */
+.csat-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.csat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+}
+
+.csat-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.csat-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.csat-icon svg { width: 14px; height: 14px; color: var(--accent); }
+
+.tab-row { display: flex; gap: 4px; }
+
+.tab {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--gray-600);
+  border: 1px solid transparent;
+  user-select: none;
+  transition: all 0.1s;
+}
+
+.tab:hover { background: var(--gray-100); }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.csat-body { display: flex; }
+
+.sum-card {
+  flex: 1;
+  padding: 16px 18px;
+  border-right: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.sum-card:last-child { border-right: none; }
+
+.sum-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.sum-val {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gray-900);
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.sum-delta { font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+.up { color: var(--success); }
+.dn { color: var(--danger); }
+
+.spark { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+.b { width: 10px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: 0.2; }
+.b.hi { opacity: 1; }
+
+.daily-table { min-width: 1050px; table-layout: fixed; }
+.daily-table th:first-child,.daily-table td:first-child { width:260px; position:sticky; left:0; background:var(--white); z-index:1; }
+.daily-table th:last-child { width:140px; }
+.daily-table td,.daily-table th { padding:10px 12px; vertical-align:middle; }
+.daily-table tbody tr:hover td { background:var(--gray-50); }
+.daily-table tbody tr:first-child th,.daily-table tbody tr:first-child td { background:var(--accent-light); }
+.daily-table td:nth-child(2) { color:var(--accent); }
+.daily-table svg { display:block; height:38px; }
+.daily-delta { display:none; font-size:10px; margin-top:5px; }
+.daily-show-deltas .daily-delta { display:block; }
+.daily-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin:8px 0 12px; font-size:12px; color:var(--gray-700); }
+.daily-toolbar label { display:flex; align-items:center; gap:7px; cursor:pointer; }
+.daily-toolbar details { max-width:480px; text-align:right; }
+.daily-toolbar summary { cursor:pointer; }
+.daily-value { font-variant-numeric:tabular-nums; }
+.daily-track { display:block; height:5px; background:var(--gray-100); border-radius:4px; margin-top:7px; overflow:hidden; }
+.daily-track i { display:block; height:100%; background:var(--accent); border-radius:4px; }
+/* ---- CSAT của bạn (theo email đăng nhập) so với MCVN + từng team ---- */
+.my-csat { display: flex; flex-wrap: wrap; align-items: stretch; border-top: 1px solid var(--gray-200); background: var(--white); }
+.my-csat[hidden] { display: none; }
+.my-csat .sum-card { flex: 0 0 260px; border-right: 1px solid var(--gray-200); }
+.my-csat .sum-label .my-tag { color: var(--accent); }
+.my-sub { font-size: 11px; color: var(--gray-500); margin-top: 6px; }
+.my-cmp { flex: 1; min-width: 280px; padding: 16px 18px; display: flex; flex-direction: column; justify-content: center; gap: 7px; }
+.my-cmp-row { display: grid; grid-template-columns: 104px 1fr 50px 66px; align-items: center; gap: 10px; font-size: 12px; color: var(--gray-700); }
+.my-cmp-row.me { font-weight: 600; color: var(--gray-900); }
+.my-cmp-row.own > span:first-child { font-weight: 600; color: var(--gray-900); }
+.my-cmp-row.own > span:first-child::after { content: ' •'; color: var(--accent); }
+.my-cmp-row b { font-weight: 600; color: var(--gray-900); text-align: right; font-variant-numeric: tabular-nums; }
+.my-bar { height: 8px; border-radius: 4px; background: var(--gray-100); overflow: hidden; }
+.my-bar > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.my-bar.ref > i { background: var(--gray-400); }
+.gap-chip { justify-self: end; display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--gray-100); color: var(--gray-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gap-chip.up { background: var(--success-light); }
+.gap-chip.dn { background: var(--danger-light); }
+/* Dropdown: agent thấp hơn baseline */
+.below-box { border-top: 1px solid var(--gray-200); background: var(--white); }
+.below-box[hidden] { display: none; }
+.below-box > summary { list-style: none; cursor: pointer; padding: 11px 18px; font-size: 12px; font-weight: 600; color: var(--gray-700); display: flex; align-items: center; gap: 8px; user-select: none; }
+.below-box > summary::-webkit-details-marker { display: none; }
+.below-box > summary::before { content: '▸'; color: var(--gray-500); transition: transform .15s; }
+.below-box[open] > summary::before { transform: rotate(90deg); }
+.below-box > summary:hover { background: var(--gray-50); }
+.below-count { background: var(--danger-light); color: var(--danger); border-radius: 10px; padding: 1px 8px; font-size: 11px; }
+.below-ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 0 18px 10px; font-size: 12px; color: var(--gray-600); }
+.below-ctrl select, .below-ctrl input { font: inherit; font-size: 12px; padding: 5px 8px; border: 1px solid var(--gray-300); border-radius: 8px; background: var(--white); color: var(--gray-900); }
+.below-ctrl input { flex: 1; min-width: 160px; max-width: 260px; }
+.below-ctrl .below-note { margin-left: auto; color: var(--gray-500); font-size: 11px; }
+.below-scroll { max-height: 340px; overflow: auto; border-top: 1px solid var(--gray-100); }
+.below-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.below-tbl th { position: sticky; top: 0; background: var(--gray-50); color: var(--gray-500); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; text-align: left; padding: 7px 10px; }
+.below-tbl td { padding: 7px 10px; border-top: 1px solid var(--gray-100); color: var(--gray-700); }
+.below-tbl td.num, .below-tbl th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.below-tbl td .ag-name { color: var(--gray-900); font-weight: 500; }
+.below-tbl td .ag-mail { color: var(--gray-500); font-size: 11px; }
+.below-tbl tr.me td { background: var(--accent-light); }
+.below-empty { padding: 14px 18px; font-size: 12px; color: var(--gray-500); }
+@media (max-width: 640px) {
+  .my-csat .sum-card { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--gray-200); }
+  .my-cmp-row { grid-template-columns: 84px 1fr 46px 60px; gap: 6px; }
+  .below-tbl .col-team { display: none; }
+}
+
+/* ---- Nút thu gọn / mở rộng sidebar ---- */
+.sb-toggle {
+  margin-left: auto; flex-shrink: 0;
+  width: 30px; height: 30px;
+  border: none; background: none; cursor: pointer;
+  border-radius: 8px; color: var(--gray-600);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.sb-toggle:hover { background: var(--gray-100); color: var(--gray-900); }
+.sb-toggle svg { width: 18px; height: 18px; }
+
+.sidebar { transition: width 0.16s ease; }
+.main { transition: margin-left 0.16s ease; }
+.nav-text { white-space: nowrap; }
+
+/* Trạng thái thu gọn */
+body.sb-collapsed .sidebar { width: 64px; }
+body.sb-collapsed .main { margin-left: 64px; }
+body.sb-collapsed .brand-block,
+body.sb-collapsed .nav-text,
+body.sb-collapsed .nav-label,
+body.sb-collapsed .user-info,
+body.sb-collapsed .logout-btn { display: none; }
+/* Thu gọn: vẫn hiện chữ TQA, xếp trên nút mở rộng */
+body.sb-collapsed .sidebar-logo { flex-direction: column; justify-content: center; padding-left: 0; padding-right: 0; gap: 8px; }
+body.sb-collapsed .logo-mark { display: flex; width: 40px; height: 40px; font-size: 0; }
+body.sb-collapsed .logo-mark::after { content: 'TQA'; font-size: 12px; font-weight: 700; color: var(--accent-dark); letter-spacing: -0.2px; }
+body.sb-collapsed .sb-toggle { margin-left: 0; }
+body.sb-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; border-left-width: 0; }
+body.sb-collapsed .user-chip { justify-content: center; margin: 0; }
+body.sb-collapsed .sidebar-footer { padding-left: 8px; padding-right: 8px; }
+
+/* ---- Khu vực nhúng tool ---- */
+.tool-view { display: none; flex: 1; flex-direction: column; height: 100vh; background: var(--gray-50); }
+.tool-view.visible { display: flex; }
+.tool-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; background: var(--white);
+  border-bottom: 1px solid var(--gray-200); flex-shrink: 0;
+}
+.tool-bar-title { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.tool-bar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tool-bar { flex-wrap: wrap; overflow: visible; }
+.dashboard-viewers-host { flex-shrink: 0; overflow: visible; }
+.dashboard-viewers { display: flex; align-items: center; gap: 10px; overflow: visible; }
+.dashboard-viewers-label { font-size: 11px; color: var(--gray-600); white-space: nowrap; }
+.dashboard-viewers .MuiAvatar-root:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .tool-bar { padding: 10px 12px; gap: 8px; }
+  .tool-bar-actions { flex-wrap: wrap; }
+  .dashboard-viewers-label { max-width: 115px; white-space: normal; }
+}
+.tool-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 500; color: var(--gray-700);
+  padding: 6px 10px; border: 1px solid var(--gray-300);
+  border-radius: 8px; background: var(--white); cursor: pointer;
+  text-decoration: none; transition: background 0.1s, border-color 0.1s; font-family: inherit;
+}
+.tool-btn:hover { background: var(--gray-50); border-color: var(--gray-500); }
+.tool-btn svg { width: 14px; height: 14px; }
+#tool-frame { flex: 1; width: 100%; border: 0; background: var(--white); }
+#my-space-slot { flex: 1; }
+#my-space-frame { position: fixed; z-index: 5; border: 0; background: var(--white); border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+/* đặt bên trái linh vật (lantern companion ~140px ở góc phải dưới) */
+#my-space-frame.mini { width: 300px !important; height: 206px !important; z-index: 9000; border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,.25); }
+@media (max-width: 540px) { #my-space-frame.mini { width: 240px !important; height: 172px !important; } }
+.tool-empty {
+  flex: 1; display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px; color: var(--gray-500);
+  font-size: 14px; text-align: center;
+}
+.tool-empty.visible { display: flex; }
+
+/* Mũi tên thu gọn xoay khi ở trạng thái thu ---- */
+.sb-toggle svg { transition: transform 0.16s ease; }
+body.sb-collapsed .sb-toggle svg { transform: rotate(180deg); }
+
+/* =========================================================
+   GIAO DIỆN TỐI — đặt bảng màu ở cấp cao nhất (html hoặc body)
+   ========================================================= */
+.theme-dark {
+  --white: #1e2023;
+  --gray-50: #141517;
+  --gray-100: #202327;
+  --gray-200: #2b2f34;
+  --gray-300: #363b41;
+  --gray-400: #454b52;
+  --gray-500: #7f868e;
+  --gray-600: #99a0a7;
+  --gray-700: #bcc2c8;
+  --gray-900: #eaeef2;
+  --accent: #5b9bff;
+  --accent-light: #1b2740;
+  --accent-border: #2c3d5c;
+  --accent-dark: #9dc0ff;
+  --success: #4ac06a; --success-light: #16281c;
+  --danger:  #ff6b60; --danger-light:  #34201e;
+  --warning: #e59a3a; --warning-light: #2c2415;
+  --purple:  #a98be6; --purple-light:  #241d33;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ---- Cài đặt / đổi mật khẩu ---- */
+.settings-view {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  padding: 24px 16px; overflow-y: auto;
+  background: rgba(15, 18, 22, 0.45);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.settings-view.visible { display: flex; justify-content: center; align-items: flex-start; }
+body.modal-open { overflow: hidden; }
+.stg-dialog {
+  width: 100%; max-width: 580px; margin: auto 0;
+  background: var(--white); color: var(--gray-900);
+  border-radius: 26px; padding: 26px 28px 28px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.25);
+  animation: stgIn 0.18s ease;
+}
+@keyframes stgIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.stg-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.stg-dialog-title { font-size: 22px; font-weight: 700; letter-spacing: -0.2px; }
+.stg-close { width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--gray-600); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.stg-close:hover { background: var(--gray-100); color: var(--gray-900); }
+.stg-close svg { width: 20px; height: 20px; }
+.settings-view .stg-card { max-width: none; box-shadow: none; border-radius: 18px; padding: 18px; margin-bottom: 14px !important; }
+.settings-view .stg-card:last-child { margin-bottom: 0 !important; }
+.settings-view .stg-btn, .settings-view .stg-input { border-radius: 12px; }
+.settings-view .stg-btn { padding: 11px 20px; }
+.settings-view .pref-row { flex-direction: column; align-items: stretch; gap: 10px; border-bottom: none; padding: 10px 0 4px; }
+.settings-view .seg-switch { width: 100%; padding: 4px; border: none; background: var(--gray-100); border-radius: 14px; }
+.settings-view .seg-option { flex: 1; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+.settings-view .seg-option.active { box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+.theme-dark .settings-view .seg-option.active { background: var(--gray-300); }
+.settings-view .mascot-tile { border-radius: 16px; }
+@media (max-width: 540px) { .stg-dialog { padding: 20px 16px; border-radius: 22px; } }
+
+/* Team vận hành (role không có "QA") -> ẩn các mục chỉ dành cho QA */
+/* My Space: giờ Focus còn lại + thông báo khi đang xem mục khác */
+.my-space-timer { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--accent-dark); background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 9px; padding: 0 6px; line-height: 17px; font-variant-numeric: tabular-nums; }
+body.sb-collapsed .my-space-timer { position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%); font-size: 9px; padding: 0 4px; line-height: 14px; }
+.my-space-toast { position: fixed; right: 20px; bottom: 20px; z-index: 9999; max-width: min(380px, calc(100vw - 40px)); background: var(--white); color: var(--gray-900); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 12px; box-shadow: 0 14px 44px rgba(0,0,0,.18); padding: 12px 16px; font-size: 13px; font-weight: 500; cursor: pointer; }
+body.ops-view .qa-only { display: none !important; }
+body.ih-view .hide-ih { display: none !important; }
+/* qa-ih: chỉ QA + IH thấy; các role vận hành/quản lý khác thì ẩn */
+body.ops-view:not(.ih-view) .qa-ih { display: none !important; }
+/* ---- Feedback: chấm đỏ thông báo khi MNG phản hồi/hoàn thành ---- */
+.nav-item { position: relative; }
+.nav-badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #e11d48; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--white); }
+body.sb-collapsed .nav-badge { position: absolute; top: 8px; right: 8px; margin: 0; min-width: 9px; width: 9px; height: 9px; padding: 0; border-radius: 50%; font-size: 0; line-height: 0; }
+.fb-notif-pop { position: fixed; left: 16px; bottom: 16px; z-index: 9999; width: min(370px, calc(100vw - 32px)); background: var(--white); color: var(--gray-900); border: 1px solid var(--gray-200); border-radius: 14px; box-shadow: 0 14px 44px rgba(0,0,0,0.20); overflow: hidden; font-size: 13px; }
+.fb-notif-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--gray-100); }
+.fb-notif-head strong { font-size: 13px; }
+.fb-notif-x { background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: var(--gray-500); padding: 0 2px; }
+.fb-notif-item { padding: 11px 14px; border-bottom: 1px solid var(--gray-100); line-height: 1.5; }
+.fb-notif-item:last-of-type { border-bottom: 0; }
+.fb-notif-foot { padding: 10px 14px; font-size: 12px; color: var(--gray-500); background: var(--gray-50); }
+.stg-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-card); padding: 22px; max-width: 460px; box-shadow: var(--shadow-sm); }
+.stg-title { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 4px; }
+.stg-desc { font-size: 12.5px; color: var(--gray-500); margin-bottom: 16px; line-height: 1.5; }
+.stg-label { font-size: 12px; font-weight: 500; color: var(--gray-700); margin-bottom: 6px; display: block; }
+.stg-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 14px; font-family: inherit; color: var(--gray-900); background: var(--white); margin-bottom: 14px; }
+.stg-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.stg-btn { padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.stg-btn:hover { background: var(--accent-dark); }
+.stg-msg { margin-top: 12px; font-size: 12.5px; min-height: 16px; }
+.stg-msg.err { color: var(--danger); }
+.stg-msg.ok { color: var(--success); }
+.prefs-card { margin-bottom: 20px; }
+.pref-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--gray-200); }
+.pref-row:last-child { border-bottom: none; padding-bottom: 0; }
+.pref-row:first-of-type { padding-top: 4px; }
+.pref-copy { min-width: 0; }
+.pref-name { font-size: 13px; font-weight: 600; color: var(--gray-900); margin-bottom: 3px; }
+.pref-help { font-size: 11.5px; color: var(--gray-500); line-height: 1.4; }
+.seg-switch { flex-shrink: 0; display: inline-flex; padding: 3px; border: 1px solid var(--gray-300); background: var(--gray-50); border-radius: 10px; }
+.seg-option { min-width: 58px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--gray-600); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg-option.active { background: var(--white); color: var(--accent-dark); box-shadow: var(--shadow-sm); }
+@media (max-width: 540px) { .pref-row { align-items: flex-start; flex-direction: column; } .seg-switch { width: 100%; } .seg-option { flex: 1; } }
+
+/* =========================================================
+   GIAO DIỆN BO TRÒN — sidebar + nội dung là các khối nổi trên nền
+   ========================================================= */
+:root { --canvas: #eceff3; --gap: 14px; --radius-panel: 22px; --sb-w: 220px; }
+.theme-dark { --canvas: #0c0d0f; }
+body { background: var(--canvas); }
+
+.sidebar {
+  top: var(--gap); left: var(--gap); bottom: var(--gap);
+  min-height: 0;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-sm);
+  overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar-logo { border-bottom: none; padding: 0 12px 14px 16px; }
+.brand-block { min-width: 0; }
+.brand-name, .brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logo-mark { border-radius: 10px; }
+.logo-mark { background: var(--accent-light); border: 1px solid var(--accent-border); font-size: 18px; line-height: 1; }
+
+/* Mục menu dạng viên thuốc bo tròn */
+.nav-item, .nav-group-head {
+  margin: 2px 10px;
+  padding: 9px 12px;
+  border-left: none;
+  border-radius: 12px;
+}
+.nav-item.nav-sub { padding-left: 33px; }
+.nav-item:hover, .nav-group-head:hover { background: var(--gray-100); }
+.nav-item.active { background: var(--accent-light); color: var(--accent-dark); }
+.nav-label { padding-left: 22px; }
+.sidebar-footer { border-top: none; }
+.user-chip { border-radius: 12px; }
+
+.main {
+  margin: var(--gap) var(--gap) var(--gap) calc(var(--sb-w) + var(--gap) * 2);
+  min-height: calc(100vh - var(--gap) * 2);
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-sm);
+}
+.hero { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+.tool-view { height: calc(100vh - var(--gap) * 2 - 2px); background: transparent; }
+.tool-bar { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+#tool-frame { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+
+/* Thu gọn: khối sidebar hẹp, icon căn giữa trong ô bo tròn */
+body.sb-collapsed .sidebar { width: 68px; }
+body.sb-collapsed .main { margin-left: calc(68px + var(--gap) * 2); }
+body.sb-collapsed .nav-item,
+body.sb-collapsed .nav-group-head { margin: 3px 10px; padding: 10px 0; }
+body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
+
+@media (max-width: 700px) {
+  :root { --gap: 8px; --radius-panel: 16px; }
+}
+</style>
+<script src="/assets/tqa-i18n.js" defer></script>
+<link rel="stylesheet" href="/assets/navigation-bar.css?v=20261007-1">
+<link rel="stylesheet" href="/assets/glass-surface.css?v=20261009-settings-1">
+<link rel="stylesheet" href="/assets/mac-settings.css?v=20261009-1">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark" aria-hidden="true">✨</div>
+    <div class="brand-block">
+      <div class="brand-name">Team QA MCVN</div>
+      <div class="brand-sub">Shopee Vietnam CS</div>
+    </div>
+    <button class="sb-toggle" id="sb-toggle" title="Thu gọn thanh menu" aria-label="Thu gọn / mở rộng thanh menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+    </button>
+  </div>
+
+  <a class="nav-item active" id="home-nav" href="#home" data-view="home" title="Trang chủ">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="nav-text" data-i18n="home">Trang chủ</span>
+  </a>
+  <a class="nav-item" id="my-space-nav" href="/my-space/" data-tool="my-space" data-src="/my-space/" data-title="My Space" title="My Space">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M14 17h7m-3.5-3.5v7"/></svg>
+    <span class="nav-text">My Space</span>
+  </a>
+  <a id="user-setup-nav" class="nav-item" href="/user-setup/" data-tool="user-setup" data-src="/user-setup/" data-title="Set up user" title="Set up user" hidden><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 12-4.9"/><circle cx="18" cy="18" r="3"/><path d="M18 13v2m0 6v2m-5-5h2m6 0h2"/></svg><span class="nav-text">Set up user</span></a>
+  <a class="nav-item qa-only" href="#" data-tool="csat" data-src="" data-title="CSAT reports" title="CSAT reports">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="nav-text" data-i18n="csatReports">CSAT reports</span>
+  </a>
+
+  <div class="nav-label" data-i18n="tools">Tools</div>
+  <a class="nav-item" href="/cqm/" data-tool="cqm" data-src="/cqm/" data-title="CQM Monitor" title="CQM Monitor">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span class="nav-text">CQM Monitor</span>
+  </a>
+  <a class="nav-item qa-ih" href="/cs-performance/" data-tool="csperf" data-src="/cs-performance/" data-title="CS Performance" title="CS Performance">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="nav-text">CS Performance</span>
+  </a>
+  <a class="nav-item qa-only hide-ih" href="/headcount/" data-tool="headcount" data-src="/headcount/" data-title="HC Monitor" title="HC Monitor (Headcount)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>
+    <span class="nav-text">HC Monitor</span>
+  </a>
+  <a class="nav-item" href="/newbie/" data-tool="newbie" data-src="/newbie/" data-title="Newbie" title="Newbie">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5"/></svg>
+    <span class="nav-text">Newbie</span>
+  </a>
+  <div class="nav-group">
+    <div class="nav-group-head" onclick="toggleGroup(this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span class="nav-text" data-i18n="teamCall">Team Call</span>
+      <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="nav-group-body">
+      <a class="nav-item nav-sub" href="/csatteamcall/" data-tool="csatcall" data-src="/csatteamcall/" data-title="CSAT Team Call" title="CSAT Team Call"><span class="nav-text">CSAT Team Call</span></a>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-head" onclick="toggleGroup(this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/></svg>
+      <span class="nav-text" data-i18n="teamChat">Team Chat</span>
+      <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="nav-group-body">
+      <a class="nav-item nav-sub" href="/chat-log-part-time/" data-tool="chatlog" data-src="/chat-log-part-time/" data-title="Chat Log PT" title="Chat Log PT"><span class="nav-text">Chat Log PT</span></a>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-head" onclick="toggleGroup(this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span class="nav-text" data-i18n="teamMulti">Team Multi</span>
+      <svg class="grp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="nav-group-body">
+      <a class="nav-item nav-sub" href="#" data-tool="teammulti" data-src="" data-title="Team Multi" title="Team Multi"><span class="nav-text" data-i18n="inDevelopment">Đang phát triển</span></a>
+    </div>
+  </div>
+  <a class="nav-item" href="/repeatagent/" data-tool="repeatagent" data-src="/repeatagent/" data-title="Repeated Agent" title="Repeated Agent">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span class="nav-text">Repeated Agent</span>
+  </a>
+  <a class="nav-item qa-only" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span class="nav-text" data-i18n="anonymousForm">Form ẩn danh</span>
+  </a>
+  <a class="nav-item qa-only" href="#" data-tool="ztp" data-src="" data-title="ZTP Governance" title="ZTP Governance">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span class="nav-text">ZTP Governance</span>
+  </a>
+  <a class="nav-item" href="https://link.teamqamcvn.com/" data-tool="shortlink" data-src="https://link.teamqamcvn.com/" data-title="Short Link" title="Short Link">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <span class="nav-text">Short Link</span>
+  </a>
+
+  <a class="nav-item" href="/feedback/" data-tool="feedback" data-src="/feedback/" data-title="Feedback" title="Feedback">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 8h8M8 12h5"/></svg>
+    <span class="nav-text">Feedback</span><span id="feedback-unread" aria-label="Có thông báo Feedback chưa đọc" hidden style="background:#df3548;color:white;border-radius:50%;width:17px;height:17px;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-left:auto">!</span>
+  </a>
+  <div class="sidebar-footer">
+    <div class="user-chip" title="Mở cài đặt tài khoản" role="button" tabindex="0" aria-label="Mở cài đặt tài khoản">
+      <div class="user-avatar-sm" id="sidebar-av">··</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">—</div>
+        <div class="user-role-txt" id="sidebar-role" data-i18n="settings">Cài đặt</div>
+      </div>
+      <button class="logout-btn" id="logout-btn" title="Đăng xuất" aria-label="Đăng xuất">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-avatar" id="hero-av">··</div>
+      <div class="hero-info">
+        <div class="hero-greeting" id="hero-greeting"></div>
+        <div class="hero-name" id="hero-name">—</div>
+        <div class="hero-meta">
+          <span class="hero-email" id="hero-email">—</span>
+          <span class="hero-role-badge" id="hero-role">Team QA · MCVN</span>
+        </div>
+      </div>
+    </div>
+    <div class="quote-block">
+      <div class="quote-text" id="qt"></div>
+      <div class="quote-footer">
+        <div class="quote-author" id="qa"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-label" data-i18n="csatOverview">CSAT Overview</div>
+    <div class="csat-card">
+      <div class="csat-header">
+        <div class="csat-title">
+          <div class="csat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          CSAT Overview · MCVN
+          <span id="csat-stamp" style="font-size:10px;color:var(--gray-500);font-weight:400;margin-left:4px"></span>
+        </div>
+        <div class="tab-row">
+          <div class="tab active" onclick="sw('mom',this)">MoM</div>
+          <div class="tab" onclick="sw('wow',this)">WoW</div>
+        </div>
+      </div>
+
+      <div id="mom" class="csat-body">
+        <div class="sum-card">
+          <div class="sum-label">MCVN Overall</div>
+          <div class="sum-val">86.0%</div>
+          <div class="sum-delta dn">▼ 1.1% MoM</div>
+          <div class="spark"><div class="b" style="height:80%"></div><div class="b" style="height:99%"></div><div class="b" style="height:96%"></div><div class="b hi" style="height:90%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Call</div>
+          <div class="sum-val">93.0%</div>
+          <div class="sum-delta dn">▼ 0.7% MoM</div>
+          <div class="spark"><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b" style="height:99%"></div><div class="b hi" style="height:93%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Chat</div>
+          <div class="sum-val">81.3%</div>
+          <div class="sum-delta dn">▼ 0.0% MoM</div>
+          <div class="spark"><div class="b" style="height:95%"></div><div class="b" style="height:100%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:99%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Multi</div>
+          <div class="sum-val">82.5%</div>
+          <div class="sum-delta dn">▼ 2.9% MoM</div>
+          <div class="spark"><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b" style="height:98%"></div><div class="b hi" style="height:96%"></div></div>
+        </div>
+      </div>
+
+      <div id="wow" class="csat-body" style="display:none">
+        <div class="sum-card">
+          <div class="sum-label">MCVN Overall</div>
+          <div class="sum-val">86.5%</div>
+          <div class="sum-delta up">▲ 1.0% WoW</div>
+          <div class="spark"><div class="b" style="height:100%"></div><div class="b" style="height:98%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:99%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Call</div>
+          <div class="sum-val">93.6%</div>
+          <div class="sum-delta up">▲ 1.0% WoW</div>
+          <div class="spark"><div class="b" style="height:100%"></div><div class="b" style="height:99%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:100%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Chat</div>
+          <div class="sum-val">81.3%</div>
+          <div class="sum-delta dn">▼ 0.0% WoW</div>
+          <div class="spark"><div class="b" style="height:94%"></div><div class="b" style="height:94%"></div><div class="b" style="height:95%"></div><div class="b hi" style="height:94%"></div></div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team Multi</div>
+          <div class="sum-val">83.5%</div>
+          <div class="sum-delta up">▲ 2.3% WoW</div>
+          <div class="spark"><div class="b" style="height:97%"></div><div class="b" style="height:94%"></div><div class="b" style="height:100%"></div><div class="b hi" style="height:97%"></div></div>
+        </div>
+      </div>
+
+      <!-- CSAT của chính user đăng nhập (csat-agent/data.json) so với MCVN Overall -->
+      <div id="my-csat" class="my-csat" hidden></div>
+      <details id="daily-box" class="below-box" hidden>
+        <summary>CSAT Daily <span id="daily-week" class="my-sub"></span></summary>
+        <div id="daily-content" style="padding:0 18px 16px;overflow-x:auto"></div>
+      </details>
+
+      <!-- Dropdown: agent có CSAT tuần mới nhất thấp hơn baseline (QA + IH) -->
+      <details id="below-box" class="below-box qa-ih" hidden>
+        <summary><span data-i18n="belowTitle">Agent thấp hơn baseline</span> <span class="below-count" id="below-count">0</span></summary>
+        <div class="below-ctrl">
+          <select id="below-scope" hidden>
+            <option value="mine" data-i18n="scopeMine">Agent tôi phụ trách</option>
+            <option value="all" data-i18n="scopeAll">Tất cả agent</option>
+          </select>
+          <label for="below-base" data-i18n="baseline">Baseline</label>
+          <select id="below-base">
+            <option value="OWN" data-i18n="baseOwnTeam">Team của từng agent</option>
+            <option value="MCVN">MCVN Overall</option>
+            <option value="Team Call">Team Call</option>
+            <option value="Team Chat">Team Chat</option>
+            <option value="Team Multi">Team Multi</option>
+          </select>
+          <input id="below-q" type="search" data-i18n-placeholder="searchAgent" placeholder="Tìm agent / email…">
+          <span class="below-note" id="below-note"></span>
+        </div>
+        <div id="below-list"></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Khu vực hiển thị tool: trang tương ứng được nhúng vào đây -->
+  <section class="tool-view" id="tool-view">
+    <div class="tool-bar">
+      <div class="tool-bar-title" id="tool-title">Tool</div>
+      <div class="tool-bar-actions">
+        <div class="dashboard-viewers-host" id="tool-viewers"></div>
+        <button class="tool-btn" id="tool-reload" title="Tải lại" data-i18n-title="reload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span data-i18n="reload">Tải lại</span>
+        </button>
+        <a class="tool-btn" id="tool-newtab" target="_blank" rel="noopener" title="Mở tab mới" data-i18n-title="openNewTab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span data-i18n="openNewTab">Mở tab mới</span>
+        </a>
+      </div>
+    </div>
+    <iframe id="tool-frame" title="Tool" referrerpolicy="no-referrer"></iframe>
+    <!-- My Space có khung riêng: chỉ ẩn khi mở mục khác, không tải lại -> nhạc/đồng hồ Focus chạy tiếp -->
+    <div id="my-space-slot" style="display:none"></div>
+    <iframe id="my-space-frame" title="My Space" referrerpolicy="no-referrer" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" style="display:none"></iframe>
+    <div class="tool-empty" id="tool-empty">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div><span data-i18n="featurePrefix">Tính năng</span> <strong id="tool-empty-name">này</strong> <span data-i18n="featureSuffix">đang được phát triển.</span></div>
+    </div>
+  </section>
+
+  <!-- Cài đặt tài khoản -->
+  <section class="settings-view" id="settings-view" role="dialog" aria-modal="true" aria-labelledby="stg-dialog-title">
+   <div class="stg-dialog">
+    <div class="stg-dialog-head">
+      <h2 class="stg-dialog-title" id="stg-dialog-title" data-i18n="accountSettings">Cài đặt tài khoản</h2>
+      <button class="stg-close" id="stg-close" type="button" aria-label="Đóng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="stg-card prefs-card">
+      <div class="stg-title" data-i18n="interface">Giao diện</div>
+      <div class="stg-desc" data-i18n="interfaceDesc">Chọn ngôn ngữ và chế độ hiển thị phù hợp với bạn.</div>
+      <div class="pref-row">
+        <div class="pref-copy">
+          <div class="pref-name" data-i18n="language">Ngôn ngữ</div>
+          <div class="pref-help" data-i18n="languageDesc">Áp dụng cho dashboard và thanh menu.</div>
+        </div>
+        <div class="seg-switch" role="group" aria-label="Ngôn ngữ">
+          <button class="seg-option" id="lang-vn" type="button">VN</button>
+          <button class="seg-option" id="lang-en" type="button">ENG</button>
+        </div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-copy">
+          <div class="pref-name" data-i18n="appearance">Chế độ hiển thị</div>
+          <div class="pref-help" data-i18n="appearanceDesc">Đồng bộ giao diện sáng/tối với các tool.</div>
+        </div>
+        <div class="seg-switch" role="group" aria-label="Chế độ hiển thị">
+          <button class="seg-option" id="theme-light" type="button" data-i18n="light">Sáng</button>
+          <button class="seg-option" id="theme-dark" type="button" data-i18n="dark">Tối</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stg-card prefs-card" id="companion-settings">
+      <div class="stg-title" id="companion-title" data-i18n="companion">Bạn đồng hành</div>
+      <div class="stg-desc" data-i18n="companionDesc">Chọn người bạn nhỏ bên cạnh bạn. Đổi ngay khi chọn và tự lưu trên trình duyệt này.</div>
+      <div class="mascot-options" role="radiogroup" aria-labelledby="companion-title">
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="lantern" data-mascot-choice checked><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/lantern-directions.webp')"></span><span data-i18n="mascot_lantern">Đèn nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="raccoon" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/raccoon-directions.webp')"></span><span data-i18n="mascot_raccoon">Gấu mèo</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="fox" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/fox-directions.webp')"></span><span data-i18n="mascot_fox">Cáo nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="sloth" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/sloth-directions.webp')"></span><span data-i18n="mascot_sloth">Bạn lười</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="bunny" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/bunny-directions.webp')"></span><span data-i18n="mascot_bunny">Thỏ nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="sheep" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/sheep-directions.webp')"></span><span data-i18n="mascot_sheep">Cừu nhỏ</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="wizard" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/wizard-directions.webp')"></span><span data-i18n="mascot_wizard">Phù thủy</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="cube" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/cube-directions.webp')"></span><span data-i18n="mascot_cube">Robot Cube</span></span></label>
+        <label class="mascot-option"><input type="radio" name="companion-mascot" value="pug" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/pug-directions.webp')"></span><span data-i18n="mascot_pug">Cún Pug</span></span></label>
+      <label class="mascot-option"><input type="radio" name="companion-mascot" value="glasses" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/glasses-directions.webp')"></span><span data-i18n="mascot_glasses">Bạn kính</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="ballerina" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/ballerina-directions.webp')"></span><span data-i18n="mascot_ballerina">Ballerina</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="cap" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/cap-directions.webp')"></span><span data-i18n="mascot_cap">Bạn mũ đỏ</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="kamran" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/kamran-directions.webp')"></span><span data-i18n="mascot_kamran">Kamran</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="hamster" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/hamster-directions.webp')"></span><span data-i18n="mascot_hamster">Hamster</span></span></label>
+<label class="mascot-option"><input type="radio" name="companion-mascot" value="skater" data-mascot-choice><span class="mascot-tile"><span class="mascot-preview" aria-hidden="true" style="background-image:url('/lantern-companion/mascots/skater-directions.webp')"></span><span data-i18n="mascot_skater">Skater</span></span></label>
+</div>
+    </div>
+
+    <div class="stg-card" style="margin-bottom:20px">
+      <div class="stg-title" data-i18n="profile">Hồ sơ</div>
+      <div class="stg-desc" data-i18n="profileDesc">Đổi ảnh đại diện và tên hiển thị của bạn.</div>
+      <div class="profile-row">
+        <div class="profile-avatar" id="profile-preview">··</div>
+        <div>
+          <label class="profile-file-btn" for="profile-file" data-i18n="changeAvatar">Đổi ảnh đại diện</label>
+          <input id="profile-file" type="file" accept="image/*" style="display:none" />
+          <div class="stg-desc" style="margin:4px 0 0" data-i18n="squareImage">Ảnh vuông là đẹp nhất.</div>
+        </div>
+      </div>
+      <label class="stg-label" for="profile-name" data-i18n="displayName">Tên hiển thị</label>
+      <input class="stg-input" id="profile-name" type="text" placeholder="Tên hiển thị" data-i18n-placeholder="displayName" />
+      <button class="stg-btn" id="profile-save" data-i18n="saveProfile">Lưu hồ sơ</button>
+      <div class="stg-msg" id="profile-msg"></div>
+    </div>
+
+    <div class="stg-card">
+      <div class="stg-title" data-i18n="changePassword">Đổi mật khẩu</div>
+      <div class="stg-desc" data-i18n="passwordDesc">Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.</div>
+      <label class="stg-label" for="set-np" data-i18n="newPassword">Mật khẩu mới</label>
+      <input class="stg-input" id="set-np" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" data-i18n-placeholder="minSix" />
+      <label class="stg-label" for="set-np2" data-i18n="confirmPassword">Nhập lại mật khẩu</label>
+      <input class="stg-input" id="set-np2" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" data-i18n-placeholder="confirmPassword" />
+      <button class="stg-btn" id="set-savepw" data-i18n="savePassword">Lưu mật khẩu</button>
+      <div class="stg-msg" id="set-msg"></div>
+    </div>
+   </div>
+  </section>
+</main>
+
+<script>
+/* ================================================================= *
+ *  CẤU HÌNH (giống index.html)                                       *
+ * ================================================================= */
+const SUPABASE_URL = 'https://ytbcydursrpjqnaalhxc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo';
+const ALLOWED_DOMAINS = ['shopeemobile-external.com', 'shopee.com'];
+
+const LANG_KEY = 'tqa_lang';
+const I18N = {
+  vi: {
+    companion:'Bạn đồng hành', companionDesc:'Chọn người bạn nhỏ bên cạnh bạn. Đổi ngay khi chọn và tự lưu trên trình duyệt này.',
+    mascot_lantern:'Đèn nhỏ', mascot_raccoon:'Gấu mèo', mascot_fox:'Cáo nhỏ', mascot_sloth:'Bạn lười', mascot_bunny:'Thỏ nhỏ', mascot_sheep:'Cừu nhỏ', mascot_wizard:'Phù thủy', mascot_cube:'Robot Cube', mascot_pug:'Cún Pug', mascot_glasses:'Bạn kính', mascot_ballerina:'Ballerina', mascot_cap:'Bạn mũ đỏ', mascot_kamran:'Kamran', mascot_hamster:'Hamster', mascot_skater:'Skater',
+    home:'Trang chủ', csatReports:'Báo cáo CSAT', tools:'Công cụ',
+    teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'Đang phát triển',
+    anonymousForm:'Form ẩn danh', settings:'Cài đặt', accountSettings:'Cài đặt tài khoản',
+    interface:'Giao diện', interfaceDesc:'Chọn ngôn ngữ và chế độ hiển thị phù hợp với bạn.',
+    language:'Ngôn ngữ', languageDesc:'Áp dụng cho dashboard và thanh menu.',
+    appearance:'Chế độ hiển thị', appearanceDesc:'Đồng bộ giao diện sáng/tối với các tool.',
+    light:'Sáng', dark:'Tối', profile:'Hồ sơ', profileDesc:'Đổi ảnh đại diện và tên hiển thị của bạn.',
+    changeAvatar:'Đổi ảnh đại diện', squareImage:'Ảnh vuông là đẹp nhất.', displayName:'Tên hiển thị',
+    saveProfile:'Lưu hồ sơ', changePassword:'Đổi mật khẩu',
+    passwordDesc:'Nhập mật khẩu mới nếu bạn muốn thay mật khẩu mặc định. Không đổi cũng không sao.',
+    newPassword:'Mật khẩu mới', minSix:'Ít nhất 6 ký tự', confirmPassword:'Nhập lại mật khẩu',
+    savePassword:'Lưu mật khẩu', csatOverview:'Tổng quan CSAT', reload:'Tải lại', openNewTab:'Mở tab mới',
+    featurePrefix:'Tính năng', featureSuffix:'đang được phát triển.',
+    openSettings:'Mở cài đặt tài khoản', logout:'Đăng xuất', collapse:'Thu gọn thanh menu', expand:'Mở rộng thanh menu',
+    homeTitle:'Về Trang chủ', updated:'cập nhật', cached:'đệm',
+    myCsat:'CSAT của bạn', myRatings:'lượt đánh giá', vsTeams:'So với từng team', you:'Bạn',
+    belowTitle:'Agent thấp hơn baseline', baseline:'Baseline', searchAgent:'Tìm agent / email…',
+    colAgent:'Agent', colTeam:'Team', colRatings:'Lượt ĐG', colGap:'vs baseline',
+    noneBelow:'Không có agent nào thấp hơn baseline 🎉', belowNote:'So CSAT tuần {w} với {b} ({v})',
+    noCsatWeek:'Chưa có CSAT tuần này',
+    myAgentsCsat:'CSAT agent bạn phụ trách', myAgents:'Agent của bạn', qaSub:'TB {n} agent · {d} có CSAT {w}',
+    scopeMine:'Agent tôi phụ trách', scopeAll:'Tất cả agent', baseOwnTeam:'Team của từng agent',
+    belowNoteOwn:'So CSAT tuần {w} của mỗi agent với team của agent đó',
+    passwordShort:'Mật khẩu cần ít nhất 6 ký tự.', passwordMismatch:'Hai ô mật khẩu chưa khớp.', saving:'Đang lưu...',
+    passwordSaved:'Đã đổi mật khẩu thành công!', enterName:'Nhập tên hiển thị.', profileSaved:'Đã lưu hồ sơ!',
+    chooseImage:'Vui lòng chọn file ảnh.', processingImage:'Đang xử lý ảnh...', avatarSaved:'Đã cập nhật ảnh đại diện!', error:'Lỗi'
+  },
+  en: {
+    companion:'Companion', companionDesc:'Choose your little companion. Changes apply instantly and are saved in this browser.',
+    mascot_lantern:'Lantern', mascot_raccoon:'Raccoon', mascot_fox:'Fox', mascot_sloth:'Sloth', mascot_bunny:'Bunny', mascot_sheep:'Sheep', mascot_wizard:'Wizard', mascot_cube:'Cube Robot', mascot_pug:'Pug', mascot_glasses:'Glasses', mascot_ballerina:'Ballerina', mascot_cap:'Red Cap', mascot_kamran:'Kamran', mascot_hamster:'Hamster', mascot_skater:'Skater',
+    home:'Home', csatReports:'CSAT Reports', tools:'Tools',
+    teamCall:'Team Call', teamChat:'Team Chat', teamMulti:'Team Multi', inDevelopment:'In development',
+    anonymousForm:'Anonymous Form', settings:'Settings', accountSettings:'Account Settings',
+    interface:'Appearance', interfaceDesc:'Choose your preferred language and display mode.',
+    language:'Language', languageDesc:'Applies to the dashboard and sidebar.',
+    appearance:'Display mode', appearanceDesc:'Sync light/dark mode with embedded tools.',
+    light:'Light', dark:'Dark', profile:'Profile', profileDesc:'Change your avatar and display name.',
+    changeAvatar:'Change avatar', squareImage:'Square images work best.', displayName:'Display name',
+    saveProfile:'Save profile', changePassword:'Change password',
+    passwordDesc:'Enter a new password if you want to replace the default one. This is optional.',
+    newPassword:'New password', minSix:'At least 6 characters', confirmPassword:'Confirm password',
+    savePassword:'Save password', csatOverview:'CSAT Overview', reload:'Reload', openNewTab:'Open in new tab',
+    featurePrefix:'The feature', featureSuffix:'is under development.',
+    openSettings:'Open account settings', logout:'Sign out', collapse:'Collapse sidebar', expand:'Expand sidebar',
+    homeTitle:'Home', updated:'updated', cached:'cached',
+    myCsat:'Your CSAT', myRatings:'ratings', vsTeams:'vs each team', you:'You',
+    belowTitle:'Agents below baseline', baseline:'Baseline', searchAgent:'Search agent / email…',
+    colAgent:'Agent', colTeam:'Team', colRatings:'Ratings', colGap:'vs baseline',
+    noneBelow:'No agents below the baseline 🎉', belowNote:'Week {w} CSAT vs {b} ({v})',
+    noCsatWeek:'No CSAT this week yet',
+    myAgentsCsat:'Your agents CSAT', myAgents:'Your agents', qaSub:'Avg of {n} agents · {d} with {w} CSAT',
+    scopeMine:'My agents', scopeAll:'All agents', baseOwnTeam:'Each agent’s team',
+    belowNoteOwn:'Week {w} CSAT of each agent vs that agent’s team',
+    passwordShort:'Password must contain at least 6 characters.', passwordMismatch:'The passwords do not match.', saving:'Saving...',
+    passwordSaved:'Password changed successfully!', enterName:'Enter a display name.', profileSaved:'Profile saved!',
+    chooseImage:'Please choose an image file.', processingImage:'Processing image...', avatarSaved:'Avatar updated!', error:'Error'
+  }
+};
+function currentLang(){ return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'vi'; }
+function t(key){ return (I18N[currentLang()] && I18N[currentLang()][key]) || I18N.vi[key] || key; }
+
+let sb; // khởi tạo trong bootstrap (DOMContentLoaded) sau khi supabase-js (defer) đã tải xong
+
+function domainOf(email) {
+  return (email || '').split('@')[1]?.toLowerCase() || '';
+}
+
+function initials(name, email) {
+  var base = (name || '').trim();
+  if (base) {
+    var parts = base.split(/\s+/);
+    var first = parts[0].charAt(0);
+    var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (first + last).toUpperCase();
+  }
+  return (email || '?').charAt(0).toUpperCase();
+}
+
+function fillAvatar(el, name, email, picture) {
+  if (picture) {
+    var img = document.createElement('img');
+    img.src = picture;
+    img.alt = name || email;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = function () { el.textContent = initials(name, email); };
+    el.textContent = '';
+    el.appendChild(img);
+  } else {
+    el.textContent = initials(name, email);
+  }
+}
+
+// Guard + nạp dữ liệu người dùng. Không có session hoặc sai domain -> về login.
+async function renderUser() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.replace('/'); return; }
+
+  const u = session.user;
+  const email = (u.email || '').toLowerCase();
+  if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
+    await sb.auth.signOut();
+    location.replace('/');
+    return;
+  }
+
+  const meta = u.user_metadata || {};
+  let name = meta.full_name || meta.name || email.split('@')[0];
+  let picture = meta.avatar || meta.avatar_url || meta.picture || '';
+  // @shopee.com chưa có dòng được mặc định IH; tài khoản ngoài cần dòng đang hoạt động.
+  let role = domainOf(email) === 'shopee.com' ? 'IH' : 'Member';
+
+  // Lấy vai trò từ bảng app_users (RLS chỉ cho đọc dòng của chính mình).
+  let rawRole = domainOf(email) === 'shopee.com' ? 'IH' : '';
+  try {
+    const { data, error } = await sb.from('app_users')
+      .select('full_name, role, team, active')
+      .eq('email', email)
+      .maybeSingle();
+    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) { location.replace('/'); return; }
+    if (data) {
+      if (data.full_name) name = data.full_name;
+      if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }
+    }
+  } catch (e) { location.replace('/'); return; }
+
+  // Tên do user tự đặt trong Hồ sơ được ưu tiên cao nhất.
+  if (meta.display_name) name = meta.display_name;
+
+  // Team vận hành = role KHÔNG chứa "QA" -> ẩn CSAT reports / Form ẩn danh / ZTP.
+  // (vẫn thấy CSAT Overview, CQM, Repeated Agent, Short Link)
+  document.getElementById('user-setup-nav').hidden = !['senior tqa','tl tqa','sup tqa','acting tl tqa'].includes(rawRole.trim().toLowerCase());
+  const isQA = /qa/i.test(rawRole) || rawRole === 'Trainer';  // Trainer xem như QA
+  if (!isQA) document.body.classList.add('ops-view');
+  if (rawRole.trim().toUpperCase() === 'IH') document.body.classList.add('ih-view');
+
+  document.getElementById('hero-email').textContent = email;
+  document.getElementById('hero-role').textContent = role;
+  document.getElementById('sidebar-role').textContent = t('settings');
+  CUR = { name: name, email: email, picture: picture, id: u.id };
+  refreshHeader();
+  loadMyCsat(email, name);
+
+  // Mở đúng tool theo hash trong URL (vd #cqm) — sau khi đã biết quyền.
+  routeFromHash();
+
+  // Xác thực xong -> hiện nội dung.
+  document.body.style.visibility = 'visible';
+
+  // Thông báo Feedback (MNG phản hồi / hoàn thành) — nạp lần đầu + làm mới định kỳ.
+  loadFeedbackNotifs();
+  setInterval(loadFeedbackNotifs, 180000);
+}
+
+async function logout() {
+  window.TQADataPrivacy?.purge();
+  window.TQAPresence?.stop();
+  try { await sb.auth.signOut(); } catch (e) {}
+  window.TQADataPrivacy?.signOut();
+  location.replace('/');
+}
+
+/* ---- Motivational quotes ---- */
+const quotes = [
+  {vi:'Một mình chúng ta làm được rất ít; cùng nhau, chúng ta có thể làm được rất nhiều.',en:'Alone we can do so little; together we can do so much.',authorVi:'Helen Keller',authorEn:'Helen Keller'},
+  {vi:'Đến với nhau là khởi đầu, ở bên nhau là tiến bộ, làm việc cùng nhau là thành công.',en:'Coming together is a beginning; keeping together is progress; working together is success.',authorVi:'Henry Ford',authorEn:'Henry Ford'},
+  {vi:'Tài năng giúp thắng trận, nhưng tinh thần đồng đội và trí tuệ giúp giành chức vô địch.',en:'Talent wins games, but teamwork and intelligence win championships.',authorVi:'Michael Jordan',authorEn:'Michael Jordan'},
+  {vi:'Những điều tuyệt vời trong công việc không do một người tạo nên, mà do cả một đội ngũ.',en:'Great things in business are never done by one person. They are done by a team of people.',authorVi:'Steve Jobs',authorEn:'Steve Jobs'},
+  {vi:'Không ai trong chúng ta thông minh bằng tất cả chúng ta cộng lại.',en:'None of us is as smart as all of us.',authorVi:'Ken Blanchard',authorEn:'Ken Blanchard'},
+  {vi:'Sức mạnh của đội nằm ở mỗi thành viên; sức mạnh của mỗi thành viên nằm ở cả đội.',en:'The strength of the team is each individual member. The strength of each member is the team.',authorVi:'Phil Jackson',authorEn:'Phil Jackson'},
+  {vi:'Đội ngũ không chỉ là những người làm việc cùng nhau, mà là những người tin tưởng nhau.',en:'A team is not a group of people who work together. A team is a group of people who trust each other.',authorVi:'Simon Sinek',authorEn:'Simon Sinek'},
+  {vi:'Làm việc nhóm biến ước mơ thành hiện thực.',en:'Teamwork makes the dream work.',authorVi:'John C. Maxwell',authorEn:'John C. Maxwell'},
+  {vi:'Dù năng lực hiện tại ra sao, chính nỗ lực sẽ đánh thức năng lực ấy và biến nó thành thành tựu.',en:'No matter what your ability is, effort is what ignites that ability and turns it into accomplishment.',authorVi:'Carol S. Dweck',authorEn:'Carol S. Dweck'},
+  {vi:'Không điều gì tự vận hành nếu bạn không bắt tay vào làm.',en:'Nothing will work unless you do.',authorVi:'Maya Angelou',authorEn:'Maya Angelou'},
+  {vi:'Cách để bắt đầu là ngừng nói và bắt tay vào hành động.',en:'The way to get started is to quit talking and begin doing.',authorVi:'Walt Disney',authorEn:'Walt Disney'},
+  {vi:'Năng lượng và sự bền bỉ có thể chinh phục mọi thứ.',en:'Energy and persistence conquer all things.',authorVi:'Benjamin Franklin',authorEn:'Benjamin Franklin'},
+  {vi:'Nơi sự tập trung hướng đến, năng lượng sẽ chảy về đó.',en:'Where focus goes, energy flows.',authorVi:'Tony Robbins',authorEn:'Tony Robbins'},
+  {vi:'Hãy hành động như thể việc bạn làm tạo ra khác biệt — vì đúng là như vậy.',en:'Act as if what you do makes a difference. It does.',authorVi:'William James',authorEn:'William James'},
+  {vi:'Tư duy tích cực giúp bạn làm mọi việc tốt hơn tư duy tiêu cực.',en:'Positive thinking will let you do everything better than negative thinking will.',authorVi:'Zig Ziglar',authorEn:'Zig Ziglar'},
+  {vi:'Thành công là tổng của những nỗ lực nhỏ được lặp lại mỗi ngày.',en:'Success is the sum of small efforts, repeated day in and day out.',authorVi:'Robert Collier',authorEn:'Robert Collier'},
+  {vi:'Điều khó nhất là quyết định hành động; phần còn lại chỉ là sự bền bỉ.',en:'The most difficult thing is the decision to act; the rest is merely tenacity.',authorVi:'Amelia Earhart',authorEn:'Amelia Earhart'},
+  {vi:'Ta là những gì mình lặp lại mỗi ngày. Vì thế, sự xuất sắc là một thói quen.',en:'We are what we repeatedly do. Excellence, then, is not an act, but a habit.',authorVi:'Will Durant',authorEn:'Will Durant'}
+];
+let currentQuoteIndex = Math.floor(Math.random() * quotes.length);
+function renderQuote() {
+  const vi = currentLang() === 'vi';
+  const quote = quotes[currentQuoteIndex];
+  const text = vi ? quote.vi : quote.en;
+  const author = vi ? quote.authorVi : quote.authorEn;
+  document.getElementById('qt').textContent = '“' + text + '”';
+  document.getElementById('qa').textContent = '— ' + author + ' —';
+}
+function loadQuote() { currentQuoteIndex = Math.floor(Math.random() * quotes.length); renderQuote(); }
+
+function sw(id, el) {
+  document.getElementById('mom').style.display = 'none';
+  document.getElementById('wow').style.display = 'none';
+  document.getElementById(id).style.display = 'flex';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ---- App shell: chuyển giữa Home và các tool nhúng ---- */
+const heroEl = document.querySelector('.hero');
+const contentEl = document.querySelector('.content');
+const toolView = document.getElementById('tool-view');
+const toolFrame = document.getElementById('tool-frame');
+const mySpaceFrame = document.getElementById('my-space-frame');
+const mySpaceSlot = document.getElementById('my-space-slot');
+document.body.appendChild(mySpaceFrame); // thẳng dưới body (trước khi tải) để khung nổi không bị view cha ẩn theo
+const toolEmpty = document.getElementById('tool-empty');
+const toolTitle = document.getElementById('tool-title');
+const toolNewtab = document.getElementById('tool-newtab');
+const settingsView = document.getElementById('settings-view');
+
+function showHome() {
+  window.TQAPresence?.stop();
+  window.TQALoading?.home(false);
+  toolView.classList.remove('visible');
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
+  toolFrame.src = 'about:blank';
+  heroEl.style.display = 'flex';
+  contentEl.style.display = 'block';
+  syncMySpaceSidebar();
+}
+
+// Cài đặt = popup nổi trên trang hiện tại (không đổi view/tool bên dưới)
+let settingsReturnFocus = null;
+function showSettings() {
+  if (settingsView.classList.contains('visible')) return;
+  settingsReturnFocus = document.activeElement;
+  settingsView.classList.add('visible');
+  document.body.classList.add('modal-open');
+  setTimeout(function(){ document.getElementById('stg-close').focus(); }, 0);
+}
+function closeSettings() {
+  if (!settingsView.classList.contains('visible')) return;
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
+  document.body.classList.remove('modal-open');
+  if (settingsReturnFocus && settingsReturnFocus.focus) settingsReturnFocus.focus();
+}
+document.getElementById('stg-close').addEventListener('click', closeSettings);
+settingsView.addEventListener('mousedown', function(e){ if (e.target === settingsView) closeSettings(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSettings(); });
+
+function currentTheme() {
+  return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
+}
+function withTheme(src) {
+  // thêm theme + mốc thời gian để iframe luôn lấy bản tool mới nhất (tránh kẹt cache)
+  return src + (src.includes('?') ? '&' : '?') + 'theme=' + currentTheme() + '&lang=' + currentLang() + '&_=' + Date.now();
+}
+
+function showTool(src, title) {
+  const presenceKey = document.querySelector('.nav-item.active')?.dataset.tool;
+  if (src && presenceKey) window.TQAPresence?.show(sb, CUR, presenceKey, document.getElementById('tool-viewers'));
+  else window.TQAPresence?.stop();
+  settingsView.classList.remove('visible'); document.body.classList.remove('modal-open');
+  heroEl.style.display = 'none';
+  contentEl.style.display = 'none';
+  toolTitle.textContent = title;
+  if (presenceKey === 'my-space') {
+    window.TQALoading?.stop();
+    toolEmpty.classList.remove('visible');
+    toolFrame.style.display = 'none';
+    toolFrame.src = 'about:blank';
+    if (!mySpaceFrame.getAttribute('src')) mySpaceFrame.src = withTheme(src);
+    toolNewtab.href = src;
+    toolNewtab.style.display = 'inline-flex';
+  } else if (src) {
+    const url = withTheme(src);
+    window.TQALoading?.start(url);
+    toolEmpty.classList.remove('visible');
+    toolFrame.style.display = 'block';
+    toolFrame.src = url;
+    toolNewtab.href = url;
+    toolNewtab.style.display = 'inline-flex';
+  } else {
+    window.TQALoading?.stop();
+    toolFrame.style.display = 'none';
+    toolFrame.src = 'about:blank';
+    toolNewtab.style.display = 'none';
+    document.getElementById('tool-empty-name').textContent = '"' + title + '"';
+    toolEmpty.classList.add('visible');
+  }
+  toolView.classList.add('visible');
+  syncMySpaceSidebar();
+}
+
+// Mỗi mục có "key" cho URL: tool -> data-tool, còn lại -> data-view (home/settings)
+function navKey(el){ return el.dataset.tool !== undefined ? el.dataset.tool : (el.dataset.view || 'home'); }
+function navByKey(key){
+  return Array.prototype.slice.call(document.querySelectorAll('.nav-item')).find(function(n){
+    return (n.dataset.tool !== undefined && n.dataset.tool === key) || n.dataset.view === key;
+  }) || null;
+}
+function toggleGroup(head){ head.parentElement.classList.toggle('open'); }
+function clearActive(){
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+}
+function toggleGroup(head){ head.parentElement.classList.toggle('open'); }
+function activateNav(el){
+  clearActive();
+  el.classList.add('active');
+  var grp = el.closest ? el.closest('.nav-group') : null;   // mở nhóm cha nếu là tool con
+  if (grp) grp.classList.add('open');
+  if (el.dataset.tool !== undefined) {
+    showTool(el.dataset.src, el.dataset.title || 'Tool');
+    if (el.dataset.tool === 'feedback') setTimeout(showFeedbackNotifs, 200);
+  }
+  else if (el.dataset.view === 'settings') showSettings();
+  else showHome();
+}
+// Điều hướng theo hash (vd #cqm). Không có hash -> Home.
+function routeFromHash(){
+  var key = decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'home';
+  if (key === 'settings') {   // link cũ #settings -> về Home rồi mở popup
+    history.replaceState(null, '', location.pathname + location.search);
+    routeFromHash();
+    showSettings();
+    return;
+  }
+  var el = navByKey(key);
+  if (el && el.id === 'user-setup-nav' && el.hidden) el = null;
+  if (el && el.classList.contains('qa-only') && document.body.classList.contains('ops-view')) el = null; // vận hành: chặn mục QA-only
+  if (el && el.classList.contains('qa-ih') && document.body.classList.contains('ops-view') && !document.body.classList.contains('ih-view')) el = null; // qa-ih: chỉ QA + IH
+  if (el && el.classList.contains('hide-ih') && document.body.classList.contains('ih-view')) el = null; // IH: chặn HC Monitor
+  if (key === 'home' || !el) {
+    clearActive();
+    var b = document.getElementById('home-nav'); if (b) b.classList.add('active');
+    showHome();
+    return;
+  }
+  activateNav(el);
+}
+
+document.querySelectorAll('.nav-item').forEach(function(el){
+  el.addEventListener('click', function (e) {
+    if (this.dataset.external !== undefined) return;  // link ngoài -> mở tab mới
+    e.preventDefault();
+    var key = navKey(this);
+    if ((location.hash || '').replace(/^#/, '') === key) routeFromHash();  // bấm lại chính nó
+    else location.hash = key;                                             // đổi URL -> hashchange
+    if (window.innerWidth < 768) document.body.classList.add('sb-collapsed');
+  });
+});
+window.addEventListener('hashchange', routeFromHash);
+
+document.getElementById('tool-reload').addEventListener('click', () => {
+  if (inMySpace()) { mySpaceFrame.src = withTheme('/my-space/'); return; }
+  if (toolFrame.src && toolFrame.src !== 'about:blank') {
+    window.TQALoading?.start(toolFrame.src);
+    // eslint-disable-next-line no-self-assign
+    toolFrame.src = toolFrame.src;
+  }
+});
+
+/* ---- Ngôn ngữ VN / ENG (nhớ lựa chọn) ---- */
+function applyLanguage() {
+  const lang = currentLang();
+  if (window.TQAI18N) window.TQAI18N.apply(lang);
+  document.documentElement.lang = lang === 'en' ? 'en' : 'vi';
+  document.title = lang === 'en' ? 'TQA MCVN — Dashboard' : 'TQA MCVN — Bảng điều khiển';
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){ el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el){ el.title = t(el.dataset.i18nTitle); });
+  document.getElementById('lang-vn').classList.toggle('active', lang === 'vi');
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  const userChipEl = document.querySelector('.user-chip');
+  userChipEl.title = t('openSettings'); userChipEl.setAttribute('aria-label', t('openSettings'));
+  const logoutEl = document.getElementById('logout-btn');
+  logoutEl.title = t('logout'); logoutEl.setAttribute('aria-label', t('logout'));
+  document.getElementById('home-nav').title = t('homeTitle');
+  const csatNav = document.querySelector('[data-tool="csat"]');
+  if (csatNav) { csatNav.dataset.title = t('csatReports'); csatNav.title = t('csatReports'); }
+  const formNav = document.querySelector('[data-tool="form"]');
+  if (formNav) { formNav.dataset.title = t('anonymousForm'); formNav.title = t('anonymousForm'); }
+  syncSbTitle();
+  if (CUR.name) refreshHeader();
+  renderQuote();
+  if (LAST_CSAT_SAVED_AT) csatStamp(LAST_CSAT_SAVED_AT, LAST_CSAT_FROM_CACHE);
+  renderMyCsat();
+  try { if (toolFrame && toolFrame.contentWindow) toolFrame.contentWindow.postMessage({ type:'tqa-language', lang:lang }, '*'); } catch(e) {}
+}
+document.getElementById('lang-vn').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'vi'); applyLanguage(); });
+document.getElementById('lang-en').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'en'); applyLanguage(); });
+
+/* ---- Thu gọn / mở rộng sidebar (nhớ trạng thái) ---- */
+const SB_KEY = 'tqa_sb_collapsed';
+const sbToggle = document.getElementById('sb-toggle');
+function syncSbTitle() {
+  sbToggle.title = document.body.classList.contains('sb-collapsed') ? t('expand') : t('collapse');
+  sbToggle.setAttribute('aria-label', sbToggle.title);
+}
+if (localStorage.getItem(SB_KEY) === '1') document.body.classList.add('sb-collapsed');
+sbToggle.addEventListener('click', () => {
+  document.body.classList.toggle('sb-collapsed');
+  localStorage.setItem(SB_KEY, document.body.classList.contains('sb-collapsed') ? '1' : '0');
+  syncSbTitle();
+  if (inMySpace()) {
+    mySpaceSbPrev = null;  // người dùng tự chọn -> giữ nguyên khi rời My Space
+    if (!document.body.classList.contains('sb-collapsed')) {
+      try { mySpaceFrame.contentWindow.postMessage({ type:'mcvn-sidebar', collapsed:false }, location.origin); } catch(e) {}
+    }
+  }
+});
+syncSbTitle();
+
+/* ---- My Space: thu gọn sidebar MCVN khi mở My Space (không lưu), trả lại khi rời ----
+   Thanh của My Space và sidebar MCVN luân phiên: mở thanh này thì thanh kia đóng. */
+var mySpaceSbPrev = null;
+function inMySpace() {
+  var active = document.querySelector('.nav-item.active');
+  return !!active && active.dataset.tool === 'my-space';
+}
+function syncMySpaceSidebar() {
+  layoutMySpace();
+  if (inMySpace() && mySpaceSbPrev == null) {
+    mySpaceSbPrev = document.body.classList.contains('sb-collapsed');
+    document.body.classList.add('sb-collapsed');
+  } else if (!inMySpace() && mySpaceSbPrev != null) {
+    document.body.classList.toggle('sb-collapsed', mySpaceSbPrev);
+    mySpaceSbPrev = null;
+  } else return;
+  try { syncSbTitle(); } catch(e) {}
+}
+window.addEventListener('message', function (e) {
+  if (e.origin !== location.origin || e.source !== mySpaceFrame.contentWindow) return;
+  var d = e.data || {};
+  if (d.type === 'my-space-rail' && d.expanded && !document.body.classList.contains('sb-collapsed')) {
+    document.body.classList.add('sb-collapsed');
+    syncSbTitle();
+  }
+  if (d.type === 'my-space-focus') { showMySpaceFocus(d); if (!!d.music !== mySpaceMusic) { mySpaceMusic = !!d.music; layoutMySpace(); } }
+  if (d.type === 'my-space-open') location.hash = 'my-space';
+  if (d.type === 'my-space-drag' && mySpaceFrame.classList.contains('mini')) {
+    if (d.reset) { localStorage.removeItem(MINI_POS_KEY); mySpaceMiniPos = null; }
+    else {
+      var cur = miniPos();
+      mySpaceMiniPos = clampMini(cur.x + (+d.dx || 0), cur.y + (+d.dy || 0));
+      if (d.end) localStorage.setItem(MINI_POS_KEY, JSON.stringify(mySpaceMiniPos));
+    }
+    var np = miniPos();
+    mySpaceFrame.style.left = np.x + 'px'; mySpaceFrame.style.top = np.y + 'px';
+  }
+});
+/* Khung My Space: phủ đúng vùng tool khi đang mở My Space; ở dashboard khác thì thu thành trình phát nhạc nổi (nếu đang phát). */
+// Phiên bản giao tiếp với My Space: khung My Space (luôn tải mới) so số này để phát hiện dashboard cũ còn trong bộ nhớ đệm.
+window.MCVN_MY_SPACE_API = 3;
+var mySpaceMusic = false, mySpaceMini = null;
+/* Vị trí trình phát nhạc nổi: người dùng kéo ở thanh tiêu đề (nhấp đúp để về chỗ cũ); mặc định bên trái linh vật. */
+var MINI_POS_KEY = 'tqa_myspace_mini_pos', mySpaceMiniPos = null;
+function miniSize() { return innerWidth <= 540 ? { w: 240, h: 172 } : { w: 300, h: 206 }; }
+function clampMini(x, y) { var s = miniSize(); return { x: Math.max(8, Math.min(innerWidth - s.w - 8, x)), y: Math.max(8, Math.min(innerHeight - s.h - 8, y)) }; }
+function miniPos() {
+  if (!mySpaceMiniPos) { try { mySpaceMiniPos = JSON.parse(localStorage.getItem(MINI_POS_KEY) || 'null'); } catch (e) { mySpaceMiniPos = null; } }
+  var s = miniSize();
+  var p = mySpaceMiniPos && isFinite(mySpaceMiniPos.x) && isFinite(mySpaceMiniPos.y) ? mySpaceMiniPos
+    : { x: innerWidth - s.w - (innerWidth <= 540 ? 10 : 170), y: innerHeight - s.h - (innerWidth <= 540 ? 160 : 110) };
+  return clampMini(p.x, p.y);
+}
+function layoutMySpace() {
+  if (typeof mySpaceFrame === 'undefined' || !mySpaceFrame) return;
+  var open = inMySpace() && toolView.classList.contains('visible');
+  mySpaceSlot.style.display = open ? 'block' : 'none';
+  var mini = !open && mySpaceMusic && !!mySpaceFrame.getAttribute('src');
+  if (open) {
+    var r = mySpaceSlot.getBoundingClientRect();
+    mySpaceFrame.classList.remove('mini');
+    setMySpaceStyle('display:block;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px');
+  } else if (mini) {
+    mySpaceFrame.classList.add('mini');
+    var mp = miniPos();
+    setMySpaceStyle('display:block;left:' + mp.x + 'px;top:' + mp.y + 'px');
+  } else {
+    mySpaceFrame.classList.remove('mini');
+    setMySpaceStyle('display:none');
+  }
+  if (mini !== mySpaceMini && mySpaceFrame.contentWindow) {
+    mySpaceMini = mini;
+    try { mySpaceFrame.contentWindow.postMessage({ type:'mcvn-mini', on: mini }, location.origin); } catch(e) {}
+  }
+}
+function setMySpaceStyle(css) {
+  if (mySpaceFrame.dataset.layoutStyle === css) return;
+  mySpaceFrame.dataset.layoutStyle = css;
+  mySpaceFrame.style.cssText = css;
+}
+var mySpaceLayoutPending = false;
+function scheduleMySpaceLayout() {
+  if (mySpaceLayoutPending) return;
+  mySpaceLayoutPending = true;
+  requestAnimationFrame(function() { mySpaceLayoutPending = false; layoutMySpace(); });
+}
+if (window.ResizeObserver) new ResizeObserver(scheduleMySpaceLayout).observe(mySpaceSlot);
+window.addEventListener('resize', scheduleMySpaceLayout);
+document.addEventListener('transitionend', function(e) {
+  if (e.target === document.querySelector('.main') || e.target === document.querySelector('.sidebar')) scheduleMySpaceLayout();
+});
+mySpaceFrame.addEventListener('load', function(){ mySpaceMini = null; layoutMySpace(); });
+/* Đồng hồ Focus của My Space vẫn chạy khi xem dashboard khác: hiện giờ còn lại trên menu + báo khi hết giờ. */
+function showMySpaceFocus(d) {
+  var nav = document.getElementById('my-space-nav');
+  var badge = document.getElementById('my-space-timer');
+  if (d.running && typeof d.time === 'string') {
+    if (!badge) { badge = document.createElement('span'); badge.id = 'my-space-timer'; badge.className = 'my-space-timer'; nav.appendChild(badge); }
+    badge.textContent = d.time; badge.title = d.mode || '';
+  } else if (badge) badge.remove();
+  if (typeof d.notice === 'string' && window.LanternCompanion?.remind?.(d.notice)) {
+    document.getElementById('my-space-toast')?.remove();
+    return; // The companion's live speech bubble is the notification, next to the selected mascot.
+  }
+  if (d.notice && !inMySpace()) {
+    var toast = document.getElementById('my-space-toast');
+    if (!toast) { toast = document.createElement('div'); toast.id = 'my-space-toast'; toast.className = 'my-space-toast'; toast.setAttribute('role', 'status'); toast.addEventListener('click', function(){ location.hash = 'my-space'; toast.remove(); }); document.body.appendChild(toast); }
+    toast.textContent = 'My Space · ' + d.notice;
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ toast.remove(); }, 8000);
+  }
+}
+syncMySpaceSidebar();
+
+/* ---- Giao diện sáng / tối (nhớ lựa chọn) ---- */
+const THEME_KEY = 'tqa_theme';
+function applyTheme() {
+  const dark = localStorage.getItem(THEME_KEY) === 'dark';
+  document.documentElement.classList.toggle('theme-dark', dark);
+  document.body.classList.toggle('theme-dark', dark);
+  document.getElementById('theme-light').classList.toggle('active', !dark);
+  document.getElementById('theme-dark').classList.toggle('active', dark);
+  // Báo cho tool đang mở đổi theme theo (nếu có).
+  try {
+    if (toolFrame && toolFrame.src && toolFrame.src !== 'about:blank' && toolFrame.contentWindow) {
+      toolFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, '*');
+    }
+    if (mySpaceFrame && mySpaceFrame.getAttribute('src') && mySpaceFrame.contentWindow) {
+      mySpaceFrame.contentWindow.postMessage({ type: 'tqa-theme', theme: dark ? 'dark' : 'light' }, location.origin);
+    }
+  } catch (e) { /* iframe khác origin hoặc chưa sẵn sàng */ }
+}
+document.getElementById('theme-light').addEventListener('click', function(){ localStorage.setItem(THEME_KEY, 'light'); applyTheme(); });
+document.getElementById('theme-dark').addEventListener('click', function(){ localStorage.setItem(THEME_KEY, 'dark'); applyTheme(); });
+applyTheme();
+
+document.getElementById('logout-btn').addEventListener('click', function (e) {
+  e.stopPropagation();
+  logout();
+});
+const userChip = document.querySelector('.user-chip');
+function openAccountSettings() { showSettings(); }
+userChip.addEventListener('click', openAccountSettings);
+userChip.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    openAccountSettings();
+  }
+});
+
+/* ---- Đổi mật khẩu (Cài đặt) ---- */
+async function changePassword() {
+  const p1 = document.getElementById('set-np').value || '';
+  const p2 = document.getElementById('set-np2').value || '';
+  const msg = document.getElementById('set-msg');
+  msg.className = 'stg-msg';
+  if (p1.length < 6) { msg.textContent = t('passwordShort'); msg.classList.add('err'); return; }
+  if (p1 !== p2) { msg.textContent = t('passwordMismatch'); msg.classList.add('err'); return; }
+  msg.textContent = t('saving');
+  const { error } = await sb.auth.updateUser({ password: p1, data: { password_set: true } });
+  if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
+  msg.textContent = t('passwordSaved'); msg.classList.add('ok');
+  document.getElementById('set-np').value = '';
+  document.getElementById('set-np2').value = '';
+}
+document.getElementById('set-savepw').addEventListener('click', changePassword);
+
+/* ================================================================= *
+ *  CSAT: đọc từ Supabase, hiển thị, cache + backup                  *
+ * ================================================================= */
+const CSAT_TEAMS = [
+  { key: 'MCVN', label: 'MCVN Overall' },
+  { key: 'Team Call', label: 'Team Call' },
+  { key: 'Team Chat', label: 'Team Chat' },
+  { key: 'Team Multi', label: 'Team Multi' }
+];
+
+function csatPct(v) { return (Number(v) * 100).toFixed(1) + '%'; }
+function csatDelta(d, suffix) {
+  const up = Number(d) >= 0;
+  return '<div class="sum-delta ' + (up ? 'up' : 'dn') + '">' +
+    (up ? '▲' : '▼') + ' ' + Math.abs(Number(d) * 100).toFixed(1) + '% ' + suffix + '</div>';
+}
+function csatSpark(vals) {
+  const nums = vals.map(Number);
+  const min = Math.min.apply(null, nums), max = Math.max.apply(null, nums), rng = (max - min) || 1;
+  return '<div class="spark">' + nums.map(function (v, i) {
+    const h = Math.round(40 + (v - min) / rng * 60);
+    return '<div class="b' + (i === nums.length - 1 ? ' hi' : '') + '" style="height:' + h + '%"></div>';
+  }).join('') + '</div>';
+}
+function csatCard(label, value, d, spark, suffix) {
+  return '<div class="sum-card">' +
+    '<div class="sum-label">' + label + '</div>' +
+    '<div class="sum-val">' + csatPct(value) + '</div>' +
+    csatDelta(d, suffix) +
+    csatSpark(spark) + '</div>';
+}
+// J2:AA14 -> value=cột O[5]/W33[14], delta=MoM[3]/WoW[12], spark=tháng[8,7,6,5]/tuần[17,16,15,14]
+function renderCsat(raw) {
+  if (!raw || !Array.isArray(raw.values)) return false;
+  const byKey = {};
+  raw.values.forEach(function (r) { if (r && r[0]) byKey[String(r[0]).trim()] = r; });
+  let mom = '', wow = '', any = false;
+  CSAT_TEAMS.forEach(function (t) {
+    const r = byKey[t.key];
+    if (!r) return;
+    any = true;
+    mom += csatCard(t.label, r[5], r[3], [r[8], r[7], r[6], r[5]], 'MoM');
+    wow += csatCard(t.label, r[14], r[12], [r[17], r[16], r[15], r[14]], 'WoW');
+  });
+  if (!any) return false;
+  document.getElementById('mom').innerHTML = mom;
+  document.getElementById('wow').innerHTML = wow;
+  CSAT_TEAMS.forEach(function (t) { const r = byKey[t.key]; if (r && r[14] !== '' && !isNaN(Number(r[14]))) TEAM_WEEK[t.key] = Number(r[14]); });
+  renderMyCsat();
+  return true;
+}
+
+/* ================================================================= *
+ *  CSAT của bạn: tìm dòng theo email (hoặc tên) trong                *
+ *  csat-agent/data.json (Apps Script đẩy mỗi 30') -> so với MCVN    *
+ * ================================================================= */
+let TEAM_WEEK = {}, MY_CSAT = null, CSAT_AGENTS = null, MY_EMAIL = '';   // TEAM_WEEK: CSAT tuần (WoW) theo team
+// Mã team trong file (CA.S / CH.B / MT ...) -> team trên Tổng quan
+function teamKeyOf(code) {
+  const c = String(code || '').toUpperCase();
+  if (/^CA\b|^CA\./.test(c)) return 'Team Call';
+  if (/^CH\b|^CH\.|SENIOR CH/.test(c)) return 'Team Chat';
+  if (/^MT\b|^MT\./.test(c)) return 'Team Multi';
+  return '';
+}
+// Bỏ team DP + agent chưa có QA phụ trách (không hiển thị cho ai, kể cả chính agent đó)
+function isSkipped(a) { return /^DP\b|^DP\./i.test(String(a.team || '')) || !a.qaEmail; }
+function hasCsat(v, a) { return v !== null && v !== undefined && !(v === 0 && !a.ratings); }   // 0% mà không có lượt ĐG = không có data
+function fmtGap(d) {   // d: chênh lệch dạng tỉ lệ (0.05 = 5%)
+  const v = Number(d) * 100;
+  const cls = v > 0.05 ? 'up' : v < -0.05 ? 'dn' : '';
+  return '<span class="gap-chip ' + cls + '">' + (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1) + '%</span>';
+}
+function normPersonName(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd')
+    .toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function findMyCsatRow(list, email, name) {
+  const em = String(email || '').trim().toLowerCase();
+  const byEmail = list.find(function (a) { return a.email === em; });
+  if (byEmail) return byEmail;
+  // Fallback theo tên: tên trong file dạng "03. CA.S Nguyen Thi Bao An" -> khớp phần đuôi, chỉ nhận khi duy nhất.
+  const nm = normPersonName(name);
+  if (nm.split(' ').length < 2) return null;
+  const hits = list.filter(function (a) {
+    const s = normPersonName(a.name);
+    return s === nm || s.endsWith(' ' + nm);
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+// Luôn lấy tuần mới nhất = cột K của sheet (weeks[0]); WoW so với tuần kế (cột L).
+function pickMyCsat(data, row) {
+  const vals = row.csat || [];
+  const at = function (k) { return hasCsat(vals[k], row) ? vals[k] : null; };
+  return { kind: 'own', teamKey: teamKeyOf(row.team), meta: [row.team, row.channel].filter(Boolean).join(' · '),
+           ratings: row.ratings, week: (data.weeks || [])[0] || '', value: at(0), prev: at(1),
+           spark: [at(3), at(2), at(1), at(0)].filter(function (v) { return v !== null; }) };
+}
+// QA: CSAT trung bình (không trọng số) các agent mình phụ trách, theo từng tuần.
+function pickQaCsat(data, list) {
+  const avg = function (k) {
+    const vs = list.map(function (a) { return (a.csat || [])[k]; }).filter(function (v, i) { return hasCsat(v, list[i]); });
+    return vs.length ? vs.reduce(function (s, v) { return s + v; }, 0) / vs.length : null;
+  };
+  const cnt = {};
+  list.forEach(function (a) { const k = teamKeyOf(a.team); if (k) cnt[k] = (cnt[k] || 0) + 1; });
+  const teamKey = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; })[0] || '';
+  const withData = list.filter(function (a) { return hasCsat((a.csat || [])[0], a); }).length;
+  return { kind: 'qa', teamKey: teamKey, count: list.length, withData: withData,
+           week: (data.weeks || [])[0] || '', value: avg(0), prev: avg(1),
+           spark: [avg(3), avg(2), avg(1), avg(0)].filter(function (v) { return v !== null; }) };
+}
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+function csatMiniCard(m) {
+  const label = m.kind === 'qa' ? t('myAgentsCsat') : t('myCsat');
+  const sub = m.kind === 'qa'
+    ? t('qaSub').replace('{n}', m.count).replace('{d}', m.withData).replace('{w}', escHtml(m.week))
+    : escHtml(m.meta) + (m.ratings ? (m.meta ? ' · ' : '') + m.ratings + ' ' + t('myRatings') : '');
+  return '<div class="sum-card">' +
+    '<div class="sum-label"><span class="my-tag">' + label + '</span> · ' + escHtml(m.week) + '</div>' +
+    '<div class="sum-val">' + (m.value !== null ? csatPct(m.value) : '—') + '</div>' +
+    (m.value !== null && m.prev !== null ? csatDelta(m.value - m.prev, 'WoW') : '<div class="sum-delta">' + (m.value === null ? t('noCsatWeek') : '&nbsp;') + '</div>') +
+    (m.spark.length > 1 ? csatSpark(m.spark) : '') +
+    '<div class="my-sub">' + sub + '</div>' +
+    '</div>';
+}
+function renderMyCsat() { renderMine(); renderBelow(); renderDailyCsat(); }
+function renderMine() {
+  const box = document.getElementById('my-csat');
+  if (!box || !MY_CSAT) return;
+  if (MY_CSAT.notFound) {             // không handle CS (không có CSAT, không phụ trách agent) -> giữ giao diện cũ
+    box.innerHTML = '';
+    box.hidden = true;
+    return;
+  }
+  // QA có agent phụ trách -> thẻ chính là CSAT agent của QA; nếu QA cũng có CSAT cá nhân thì hiện thêm.
+  const main = MY_CSAT.qa || MY_CSAT.own;
+  let html = csatMiniCard(main);
+  if (MY_CSAT.qa && MY_CSAT.own) html += csatMiniCard(MY_CSAT.own);
+  if (main.value !== null) {
+    const w = function (v) { return Math.max(0, Math.min(100, Number(v) * 100)).toFixed(1); };
+    let rows = '';
+    CSAT_TEAMS.forEach(function (tm) {
+      const v = TEAM_WEEK[tm.key];
+      if (v === undefined) return;
+      rows += '<div class="my-cmp-row' + (tm.key === main.teamKey ? ' own' : '') + '"><span>' + tm.label + '</span>' +
+        '<div class="my-bar ref"><i style="width:' + w(v) + '%"></i></div><b>' + csatPct(v) + '</b>' + fmtGap(main.value - v) + '</div>';
+    });
+    if (rows) html += '<div class="my-cmp">' +
+      '<div class="sum-label">' + t('vsTeams') + ' · WoW</div>' +
+      '<div class="my-cmp-row me"><span>' + (main.kind === 'qa' ? t('myAgents') : t('you')) + '</span><div class="my-bar"><i style="width:' + w(main.value) + '%"></i></div><b>' + csatPct(main.value) + '</b><span></span></div>' +
+      rows + '</div>';
+  }
+  box.innerHTML = html;
+  box.hidden = false;
+}
+// Danh sách agent có CSAT tuần mới nhất < baseline đang chọn
+// (phạm vi: agent QA phụ trách / tất cả; baseline MCVN = mọi team, Team X = agent thuộc team X)
+function renderBelow() {
+  const box = document.getElementById('below-box');
+  if (!box || !CSAT_AGENTS) return;
+  if (!MY_CSAT || MY_CSAT.notFound) { box.hidden = true; return; }   // không handle CS -> ẩn dropdown
+  const all = (CSAT_AGENTS.agents || []).filter(function (a) { return !isSkipped(a); });
+  const mine = all.filter(function (a) { return a.qaEmail === MY_EMAIL; });
+  const scopeSel = document.getElementById('below-scope');
+  scopeSel.hidden = !mine.length;
+  if (!mine.length) scopeSel.value = 'all';
+  const sel = document.getElementById('below-base');
+  if (!sel.dataset.touched) {
+    const main = MY_CSAT && !MY_CSAT.notFound ? (MY_CSAT.qa || MY_CSAT.own) : null;
+    const own = main ? main.teamKey : '';
+    sel.value = mine.length ? 'OWN' : (own && TEAM_WEEK[own] !== undefined ? own : 'MCVN');
+  }
+  const base = sel.value;
+  // Baseline của từng agent: OWN = CSAT team của chính agent đó
+  const baseOf = function (a) { return base === 'OWN' ? TEAM_WEEK[teamKeyOf(a.team)] : TEAM_WEEK[base]; };
+  const bv = base === 'OWN' ? (Object.keys(TEAM_WEEK).length ? 0 : undefined) : TEAM_WEEK[base];
+  const list = document.getElementById('below-list');
+  const week = (CSAT_AGENTS.weeks || [])[0] || '';
+  box.hidden = false;
+  if (bv === undefined) { list.innerHTML = ''; document.getElementById('below-count').textContent = '–'; return; }
+  const q = normPersonName(document.getElementById('below-q').value || '');
+  const qMail = String(document.getElementById('below-q').value || '').trim().toLowerCase();
+  const rows = (scopeSel.value === 'mine' ? mine : all).filter(function (a) {
+    const v = (a.csat || [])[0];
+    if (!hasCsat(v, a)) return false;                             // cột K trống / không có lượt ĐG
+    if (base !== 'MCVN' && base !== 'OWN' && teamKeyOf(a.team) !== base) return false;
+    const b = baseOf(a);
+    return b !== undefined && v < b;
+  }).sort(function (a, b) { return a.csat[0] - b.csat[0]; });
+  document.getElementById('below-count').textContent = rows.length;
+  const note = base === 'OWN' ? t('belowNoteOwn').replace('{w}', week)
+    : t('belowNote').replace('{w}', week).replace('{b}', sel.options[sel.selectedIndex].text).replace('{v}', csatPct(bv));
+  document.getElementById('below-note').textContent = note;
+  const shown = (q || qMail) ? rows.filter(function (a) {
+    return normPersonName(a.name).indexOf(q) >= 0 || a.email.indexOf(qMail) >= 0;
+  }) : rows;
+  if (!shown.length) { list.innerHTML = '<div class="below-empty">' + t('noneBelow') + '</div>'; return; }
+  list.innerHTML = '<div class="below-scroll"><table class="below-tbl"><thead><tr>' +
+    '<th>#</th><th>' + t('colAgent') + '</th><th class="col-team">' + t('colTeam') + '</th>' +
+    '<th class="num">CSAT ' + escHtml(week) + '</th><th class="num col-team">' + t('baseline') + '</th><th class="num">' + t('colGap') + '</th><th class="num">' + t('colRatings') + '</th>' +
+    '</tr></thead><tbody>' + shown.map(function (a, i) {
+      return '<tr' + (a.email === MY_EMAIL ? ' class="me"' : '') + '><td>' + (i + 1) + '</td>' +
+        '<td><div class="ag-name">' + escHtml(a.name) + '</div><div class="ag-mail">' + escHtml(a.email) + '</div></td>' +
+        '<td class="col-team">' + escHtml([a.team, a.channel].filter(Boolean).join(' · ')) + '</td>' +
+        '<td class="num">' + csatPct(a.csat[0]) + '</td><td class="num col-team">' + csatPct(baseOf(a)) + '</td><td class="num">' + fmtGap(a.csat[0] - baseOf(a)) + '</td>' +
+        '<td class="num">' + (a.ratings || 0) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+document.getElementById('below-base').addEventListener('change', function () { this.dataset.touched = '1'; renderBelow(); });
+document.getElementById('below-scope').addEventListener('change', renderBelow);
+document.getElementById('below-q').addEventListener('input', renderBelow);
+async function loadMyCsat(email, name) {
+  // 2) Lấy bản mới (file .json không bị Cloudflare cache)
+  try {
+    const res = await fetch('/csat-agent/data.json?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    CSAT_AGENTS = data;
+    MY_EMAIL = String(email || '').trim().toLowerCase();
+    const list = (data.agents || []).filter(function (a) { return !isSkipped(a); });
+    const row = findMyCsatRow(list, email, name);
+    const handled = list.filter(function (a) { return a.qaEmail === MY_EMAIL; });   // agent mà user (QA) phụ trách
+    MY_CSAT = (row || handled.length)
+      ? { own: row ? pickMyCsat(data, row) : null, qa: handled.length ? pickQaCsat(data, handled) : null }
+      : { notFound: true };
+    renderMyCsat();
+  } catch (e) { /* chưa có data.json (Apps Script chưa setup) -> giữ cache / ẩn khối */ }
+}
+function renderDailyCsat() {
+  const box = document.getElementById('daily-box');
+  if (!box) return;
+  box.hidden = true;
+  if (!CSAT_AGENTS || !MY_CSAT || MY_CSAT.notFound) return;
+  const all = (CSAT_AGENTS.agents || []).filter(a => !isSkipped(a));
+  const handled = all.filter(a => a.qaEmail === MY_EMAIL);
+  const own = all.filter(a => a.email === MY_EMAIL);
+  const rows = handled.length ? handled : own;
+  if (!rows.length) return;
+  box.hidden = false;
+  const en = currentLang() === 'en';
+  document.getElementById('daily-week').textContent = en ? ' · 7 days' : ' · 7 ngày';
+  const target = document.getElementById('daily-content');
+  const sourceDates = CSAT_AGENTS.dailyDates || [];
+  const dates = sourceDates.length ? Array.from({length:7}, (_,i) => { const d=new Date(sourceDates[sourceDates.length-1]+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-6+i); return d.toISOString().slice(0,10); }) : [];
+  const valuesOf = a => dates.map(d => (a.daily || [])[sourceDates.indexOf(d)]);
+  if (!dates.length) {
+    target.textContent = en ? 'No daily data for this week yet.' : 'Chưa có dữ liệu daily trong tuần này.';
+    return;
+  }
+  const valid = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+  const cell = v => valid(v) ? '<span class="daily-value">'+csatPct(v)+'</span>' : '<span class="my-sub">—</span>';
+  const dailyCell = (values,i) => cell(values[i]) + (i && valid(values[i]) && valid(values[i-1]) ? '<div class="daily-delta '+(values[i]>=values[i-1]?'up':'dn')+'">'+(values[i]>values[i-1]?'▲ ':values[i]<values[i-1]?'▼ ':'▬ ')+Math.abs((values[i]-values[i-1])*100).toFixed(1)+'%</div>' : '');
+  const l7d = values => { const v=values.filter(valid); return '<td class="num"><b>'+(v.length===7?csatPct(v.reduce((a,b)=>a+b,0)/7):'—')+'</b>'+(v.length<7?'<div class="my-sub">'+v.length+'/7 '+(en?'days':'ngày')+'</div>':'')+'</td>'; };
+  const trend = values => {
+    if(values.filter(valid).length<2) return '<span class="my-sub">'+(en?'Not enough data':'Chưa đủ dữ liệu')+'</span>';
+    const points = values.map((v,i) => valid(v) ? [8+i*18,44-v*36] : null);
+    let path = '', previous = false;
+    points.forEach(p => { if (!p) { previous=false; return; } path += (previous?' L':' M')+p[0]+','+p[1]; previous=true; });
+    return '<svg width="128" height="52" viewBox="0 0 128 52" role="img" aria-label="'+(en?'Daily CSAT trend, 0 to 100%':'Xu hướng CSAT ngày, 0 đến 100%')+'"><path d="M8 44H120" stroke="var(--gray-200)"/><path d="'+path+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+points.map((p,i)=>p?'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="var(--accent)"><title>'+escHtml(dates[i])+': '+csatPct(values[i])+'</title></circle>':'').join('')+'</svg>';
+  };
+  const averages = dates.map((d,i) => {
+    const values = rows.map(a => valuesOf(a)[i]).filter(valid);
+    return values.length ? values.reduce((s,v) => s+v,0)/values.length : null;
+  });
+  const label = d => new Date(d+'T00:00:00Z').toLocaleDateString(en ? 'en-GB' : 'vi-VN', {weekday:'short',day:'2-digit',month:'2-digit',timeZone:'UTC'});
+  target.innerHTML = '<div class="daily-toolbar"><label><input type="checkbox" id="daily-deltas-toggle"> '+(en?'Show daily changes':'Hiện tăng/giảm từng ngày')+'</label><details><summary>'+(en?'Calculation':'Cách tính')+'</summary><p class="my-sub">' +
+    (en ? 'L7D = unweighted average of seven daily percentages. ▲/▼ = change from previous day. Blank: —; zero is kept.' : 'TB L7D = trung bình cộng % của đủ 7 ngày, không trọng số. ▲/▼ = chênh lệch với ngày trước. Ô trống: —; 0% giữ nguyên theo sheet.') +
+    '</p></details></div>'+(sourceDates.length<7?'<p class="my-sub">'+(en?'Source contains only '+sourceDates.length+' day(s). Update Apps Script and run refreshAndPush.':'Nguồn hiện chỉ có '+sourceDates.length+' ngày. Cập nhật Apps Script và chạy refreshAndPush để lấy đủ AC:AI.')+'</p>':'')+'<table class="below-tbl daily-table"><thead><tr><th>Agent</th><th class="num">TB L7D</th>' + dates.map(d => '<th class="num">'+escHtml(label(d))+'</th>').join('') +
+    '<th>'+(en?'Trend':'Xu hướng')+'</th></tr></thead><tbody>' + (handled.length ? '<tr><th>'+(en ? 'Your agents · Average' : 'Agent của bạn · Trung bình')+'</th>'+l7d(averages)+averages.map((v,i)=>'<td class="num">'+dailyCell(averages,i)+'</td>').join('')+'<td>'+trend(averages)+'</td></tr>' : '') +
+    rows.map(a => '<tr><td title="'+escHtml(a.email)+'">'+escHtml(a.name)+'</td>'+l7d(valuesOf(a))+dates.map((d,i)=>'<td class="num">'+dailyCell(valuesOf(a),i)+'</td>').join('')+'<td>'+trend(valuesOf(a))+'</td></tr>').join('') + '</tbody></table>';
+  document.getElementById('daily-deltas-toggle').addEventListener('change', function() { target.classList.toggle('daily-show-deltas', this.checked); });
+}
+
+let LAST_CSAT_SAVED_AT = null, LAST_CSAT_FROM_CACHE = false;
+function csatStamp(savedAt, fromCache) {
+  const el = document.getElementById('csat-stamp');
+  if (!el || !savedAt) return;
+  LAST_CSAT_SAVED_AT = savedAt; LAST_CSAT_FROM_CACHE = fromCache;
+  const s = new Date(savedAt).toLocaleString(currentLang() === 'en' ? 'en-GB' : 'vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  el.textContent = '· ' + t('updated') + ' ' + s + (fromCache ? ' (' + t('cached') + ')' : '');
+}
+
+async function loadCsat() {
+  const isHome = () => !location.hash || location.hash === "#home";
+  if (isHome()) window.TQALoading?.home(true);
+  // 2) Lấy bản mới từ Supabase; lỗi -> giữ số cũ (backup)
+  try {
+    const { data } = await sb.from('csat_data').select('raw,saved_at').eq('id', 1).maybeSingle();
+    if (data && data.raw) {
+      renderCsat(data.raw);
+      csatStamp(data.saved_at, false);
+    }
+  } catch (e) { /* giữ cache */ }
+  finally { if (isHome()) window.TQALoading?.home(false); }
+}
+
+/* ================================================================= *
+ *  Hồ sơ: câu chào theo giờ, đổi tên hiển thị + ảnh đại diện        *
+ * ================================================================= */
+var CUR = { name: '', email: '', picture: '' };
+
+function greetingText() {
+  const h = new Date().getHours();
+  let pool;
+  if (currentLang() === 'en') {
+    if (h >= 5 && h < 11) pool = ['Good morning! Ready to crush today’s tasks?', 'A productive new day is waiting 💪', 'Coffee first, then let’s make it happen ☕'];
+    else if (h >= 11 && h < 14) pool = ['It’s lunchtime—recharge and keep going!', 'Take a short break and refuel 🍜'];
+    else if (h >= 14 && h < 18) pool = ['Keep the momentum going this afternoon!', 'Stay energized—you’ve got this 🔥'];
+    else pool = ['Wrap things up and get some well-earned rest 🌙', 'Good evening! Remember to take care of yourself ✨', 'It’s getting late—don’t stay up too long 💜'];
+  } else if (h >= 5 && h < 11) pool = [
+    'Sáng rồi nha, đã sẵn sàng "crush" mọi task chưa?', 'Chào buổi sáng! Một ngày năng suất đang chờ 💪', 'Sáng tươi rồi, nhâm nhi ly cà phê rồi chiến nào ☕'
+  ];
+  else if (h >= 11 && h < 14) pool = ['Trưa rồi, nạp năng lượng rồi chiến tiếp nha!', 'Giữa ngày rồi, nghỉ tay chút cho khỏe nhé 🍜'];
+  else if (h >= 14 && h < 18) pool = ['Chiều rồi, giữ nhịp chiến nốt nào!', 'Buổi chiều nhiều năng lượng, cố lên nha 🔥'];
+  else pool = ['Tối rồi, ráng nốt rồi nghỉ ngơi nha 🌙', 'Chào buổi tối! Nhớ chăm sóc bản thân nữa nhé ✨', 'Muộn rồi đó, đừng thức khuya quá nha 💜'];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function refreshHeader() {
+  window.TQAPresence?.update(CUR);
+  document.getElementById('hero-greeting').textContent = greetingText();
+  document.getElementById('hero-name').textContent = CUR.name + (currentLang() === 'vi' ? ' ơi!' : '!');
+  document.getElementById('sidebar-name').textContent = CUR.name;
+  fillAvatar(document.getElementById('hero-av'), CUR.name, CUR.email, CUR.picture);
+  fillAvatar(document.getElementById('sidebar-av'), CUR.name, CUR.email, CUR.picture);
+  const pn = document.getElementById('profile-name');
+  if (pn && !pn.value) pn.value = CUR.name;
+  fillAvatar(document.getElementById('profile-preview'), CUR.name, CUR.email, CUR.picture);
+}
+
+async function updateMeta(patch) {
+  const { data: { user } } = await sb.auth.getUser();
+  const meta = (user && user.user_metadata) || {};
+  return sb.auth.updateUser({ data: Object.assign({}, meta, patch) });
+}
+
+function resizeImage(file, size, cb) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const ctx = c.getContext('2d');
+      const scale = Math.max(size / img.width, size / img.height);
+      const w = img.width * scale, hh = img.height * scale;
+      ctx.drawImage(img, (size - w) / 2, (size - hh) / 2, w, hh);
+      cb(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfileName() {
+  const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
+  const nm = (document.getElementById('profile-name').value || '').trim();
+  if (!nm) { msg.textContent = t('enterName'); msg.classList.add('err'); return; }
+  msg.textContent = t('saving');
+  const { error } = await updateMeta({ display_name: nm });
+  if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
+  CUR.name = nm; refreshHeader();
+  msg.textContent = t('profileSaved'); msg.classList.add('ok');
+}
+document.getElementById('profile-save').addEventListener('click', saveProfileName);
+
+document.getElementById('profile-file').addEventListener('change', function () {
+  const file = this.files && this.files[0];
+  const msg = document.getElementById('profile-msg'); msg.className = 'stg-msg';
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { msg.textContent = t('chooseImage'); msg.classList.add('err'); return; }
+  msg.textContent = t('processingImage');
+  resizeImage(file, 160, async function (dataUrl) {
+    const { error } = await updateMeta({ avatar: dataUrl });
+    if (error) { msg.textContent = t('error') + ': ' + error.message; msg.classList.add('err'); return; }
+    CUR.picture = dataUrl; refreshHeader();
+    msg.textContent = t('avatarSaved'); msg.classList.add('ok');
+  });
+});
+
+/* ==== Feedback notifications: chấm đỏ + popup khi MNG phản hồi / hoàn thành ==== */
+var FB_NOTIFS = [];
+function fbSeenKey(){ return 'tqa.fb.seen.' + (CUR && CUR.id ? CUR.id : 'anon'); }
+function fbSeenMap(){ try { return JSON.parse(localStorage.getItem(fbSeenKey()) || '{}') || {}; } catch (e) { return {}; } }
+function fbSaveSeen(map){ try { localStorage.setItem(fbSeenKey(), JSON.stringify(map)); } catch (e) {} }
+function fbActionText(status){ return status === 'Hoàn thành' ? 'đã hoàn thành' : status === 'Đã nhận' ? 'đã tiếp nhận' : 'đã phản hồi'; }
+function fbUnseen(){ var seen = fbSeenMap(); return FB_NOTIFS.filter(function (n) { return seen[n.id] !== n.sig; }); }
+function renderFbBadge(){
+  var nav = navByKey('feedback'); if (!nav) return;
+  var badge = nav.querySelector('.nav-badge');
+  var n = fbUnseen().length;
+  if (!badge) { badge = document.createElement('span'); badge.className = 'nav-badge'; nav.appendChild(badge); }
+  if (n > 0) { badge.textContent = n > 9 ? '9+' : String(n); badge.hidden = false; }
+  else badge.hidden = true;
+}
+function fbMarkSeen(){ var seen = fbSeenMap(); FB_NOTIFS.forEach(function (n) { seen[n.id] = n.sig; }); fbSaveSeen(seen); renderFbBadge(); }
+async function loadFeedbackNotifs(){
+  if (!CUR || !CUR.id) return;
+  try {
+    var mine = await sb.from('feedback').select('id,title,status').eq('author_id', CUR.id);
+    if (mine.error) throw mine.error;
+    var list = mine.data || [];
+    if (!list.length) { FB_NOTIFS = []; renderFbBadge(); return; }
+    var ids = list.map(function (r) { return r.id; });
+    var reps = await sb.from('feedback_replies').select('id,feedback_id,author_id,created_at').in('feedback_id', ids).order('created_at');
+    if (reps.error) throw reps.error;
+    var ppl = await sb.rpc('feedback_people');
+    var nameOf = {};
+    if (!ppl.error && ppl.data) ppl.data.forEach(function (p) { nameOf[p.id] = p.display_name; });
+    var byFb = {};
+    (reps.data || []).forEach(function (r) { (byFb[r.feedback_id] = byFb[r.feedback_id] || []).push(r); });
+    var notifs = [];
+    list.forEach(function (f) {
+      var rs = byFb[f.id] || [];
+      var hasStatus = (f.status === 'Đã nhận' || f.status === 'Hoàn thành');
+      if (!rs.length && !hasStatus) return;                 // MNG chưa động vào -> không báo
+      var last = rs.length ? rs[rs.length - 1] : null;
+      var name = last ? (nameOf[last.author_id] || 'MNG') : '';
+      var action = fbActionText(f.status);
+      var msg = name
+        ? ('MNG ' + name + ' ' + action + ' phản hồi “' + f.title + '”. Nhờ bạn góp ý về trải nghiệm nhé!')
+        : ('Phản hồi “' + f.title + '” của bạn ' + action + '. Nhờ bạn góp ý về trải nghiệm nhé!');
+      notifs.push({ id: f.id, title: f.title, status: f.status, name: name, msg: msg, sig: f.status + '|' + rs.length + '|' + (last ? last.id : '') });
+    });
+    FB_NOTIFS = notifs;
+    renderFbBadge();
+    if ((location.hash || '').replace(/^#/, '') === 'feedback') showFeedbackNotifs();
+  } catch (e) { /* bảng feedback_replies chưa tạo / chưa cấp quyền -> im lặng, không hiện badge */ }
+}
+function showFeedbackNotifs(){
+  var unseen = fbUnseen();
+  if (!unseen.length) return;
+  var pop = document.getElementById('fb-notif-pop');
+  if (!pop) { pop = document.createElement('div'); pop.id = 'fb-notif-pop'; pop.className = 'fb-notif-pop'; document.body.appendChild(pop); }
+  pop.replaceChildren();
+  var head = document.createElement('div'); head.className = 'fb-notif-head';
+  var title = document.createElement('strong'); title.textContent = '🔔 Thông báo Feedback'; head.appendChild(title);
+  var x = document.createElement('button'); x.className = 'fb-notif-x'; x.setAttribute('aria-label', 'Đóng'); x.textContent = '×';
+  x.onclick = function () { pop.hidden = true; }; head.appendChild(x); pop.appendChild(head);
+  unseen.forEach(function (n) { var row = document.createElement('div'); row.className = 'fb-notif-item'; row.textContent = n.msg; pop.appendChild(row); });
+  var foot = document.createElement('div'); foot.className = 'fb-notif-foot'; foot.textContent = 'Mở Feedback để xem chi tiết và góp ý về trải nghiệm.'; pop.appendChild(foot);
+  pop.hidden = false;
+  fbMarkSeen();
+  clearTimeout(showFeedbackNotifs._t);
+  showFeedbackNotifs._t = setTimeout(function () { pop.hidden = true; }, 14000);
+}
+
+// supabase-js nạp bằng defer -> đã sẵn sàng khi DOMContentLoaded chạy.
+document.addEventListener('DOMContentLoaded', function () {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  applyLanguage();
+  renderUser();
+  loadQuote();
+  loadCsat();
+});
+</script>
+
+<script src="/lantern-companion/lantern.js?v=20261009-companions-1" defer></script>
+<script src="/feedback/sidebar-notifications.js?v=20260921" defer></script>
+<script src="/assets/navigation-bar.js?v=20261009-settings-1" defer></script>
+</body>
+</html>

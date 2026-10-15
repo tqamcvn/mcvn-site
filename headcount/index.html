@@ -1,0 +1,2393 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
+<script src="/assets/dashboard-data-privacy.js?v=20261015"></script>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=true;
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var s=(await sb.auth.getSession()).data.session;
+    if(!s){ deny(); return; }
+    var email=(s.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
+    if((email.split("@")[1]||"")==="shopee.com" || role.trim().toUpperCase()==="IH"){ deny(); return; }
+    var access=await sb.from("app_users").select("role, active").eq("email",email).maybeSingle();
+    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ deny(); return; }
+    if(QA_ONLY){
+      var role=(access.data && access.data.role)||"";
+      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
+    }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HC Monitor — MCVN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+body{
+  --bg:#0d1117;--s1:#161b22;--s2:#21262d;--b1:#30363d;
+  --acc:#4493f8;--pu:#a371f7;--g:#3fb950;--w:#d29922;--r:#f85149;--o:#f0883e;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:13px}
+
+.top{background:var(--s1);border-bottom:1px solid var(--b1);padding:11px 24px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.brand{font-size:13px;font-weight:700}.brand b{color:var(--acc)}
+.tl{font-size:11px;color:var(--t2)}.tl strong{color:var(--t1)}
+.date-chip{background:var(--acc)15;border:1px solid var(--acc)35;color:var(--acc);
+  font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;font-family:var(--mono)}
+
+.tab-bar{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 24px;display:flex}
+.tab-btn{padding:10px 18px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;background:none;
+  border-top:none;border-left:none;border-right:none;font-family:var(--sans);transition:all .15s}
+.tab-btn:hover{color:var(--t2)}
+.tab-btn.active{color:var(--acc);border-bottom-color:var(--acc)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+.fb{background:var(--s2);border-bottom:1px solid var(--b1);padding:8px 24px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.fg{display:flex;align-items:center;gap:6px}
+.fl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3)}
+select{background:var(--s1);border:1px solid var(--b1);color:var(--t1);font-size:11px;
+  padding:4px 10px;border-radius:5px;cursor:pointer;font-family:var(--sans);outline:none}
+select:hover{border-color:var(--acc)}
+
+.wrap{padding:16px 24px;display:flex;flex-direction:column;gap:16px;max-width:none;width:100%}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.kpi{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;
+  position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.a::before{background:var(--acc)}.kpi.g::before{background:var(--g)}
+.kpi.w::before{background:var(--w)}.kpi.r::before{background:var(--r)}
+.kpi.p::before{background:var(--pu)}.kpi.o::before{background:var(--o)}
+.kl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.kv{font-size:26px;font-weight:700;font-family:var(--mono);line-height:1}
+.ks{font-size:10px;color:var(--t2);margin-top:4px}
+
+.panel{background:var(--s1);border:1px solid var(--b1);border-radius:8px;overflow:hidden}
+.ph{padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.pt{font-size:12px;font-weight:600;color:var(--t1)}
+.pm{font-size:10px;color:var(--t3);font-family:var(--mono)}
+.pb{padding:12px 14px}
+
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
+.sd{flex:1;height:1px;background:var(--b1)}
+.sn{font-size:10px;color:var(--t3)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+
+table{width:100%;border-collapse:collapse}
+th{font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);
+  padding:6px 9px;border-bottom:1px solid var(--b1);text-align:left;white-space:nowrap}
+th.r,td.r{text-align:right}
+th.c,td.c{text-align:center}
+td{padding:6px 9px;font-size:11px;color:var(--t2);border-bottom:1px solid #1c2128;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1a2030}
+.b{font-weight:600;color:var(--t1)}
+.mn{font-family:var(--mono)}
+
+.hbar{display:flex;align-items:center;gap:5px}
+.ht{flex:1;height:4px;background:var(--s2);border-radius:2px;overflow:hidden}
+.hf{height:100%;border-radius:2px;transition:width .4s}
+.hn{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t1);min-width:28px;text-align:right}
+
+.dg{color:var(--g);font-family:var(--mono)}
+.dr{color:var(--r);font-family:var(--mono)}
+.dn{color:var(--t3);font-family:var(--mono)}
+
+.attr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tier{border-radius:8px;overflow:hidden;border:1px solid}
+.tier.t1{border-color:#f8514930;background:#f8514906}
+.tier.t2{border-color:#f0883e30;background:#f0883e06}
+.tier.t3{border-color:#d2992230;background:#d2992206}
+.tier.t4{border-color:#4493f830;background:#4493f806}
+.tier-hd{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid}
+.tier.t1 .tier-hd{border-color:#f8514930}
+.tier.t2 .tier-hd{border-color:#f0883e30}
+.tier.t3 .tier-hd{border-color:#d2992230}
+.tier.t4 .tier-hd{border-color:#4493f830}
+.tlabel{font-size:11px;font-weight:700}
+.tier.t1 .tlabel{color:var(--r)}.tier.t2 .tlabel{color:var(--o)}
+.tier.t3 .tlabel{color:var(--w)}.tier.t4 .tlabel{color:var(--acc)}
+.tdesc{font-size:9px;color:var(--t3);margin-top:2px}
+.tcount{font-family:var(--mono);font-size:22px;font-weight:700}
+.tier.t1 .tcount{color:var(--r)}.tier.t2 .tcount{color:var(--o)}
+.tier.t3 .tcount{color:var(--w)}.tier.t4 .tcount{color:var(--acc)}
+.tier-body{padding:8px 12px;display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.tier-body::-webkit-scrollbar{width:3px}
+.tier-body::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+.arow{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.aname{font-size:11px;color:var(--t1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.ameta{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.tag{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px}
+.tag-team{background:var(--s2);color:var(--t2)}
+.ldate{font-family:var(--mono);font-size:9px}
+.tier.t1 .ldate{color:var(--r)}.tier.t2 .ldate{color:var(--o)}
+.tier.t3 .ldate{color:var(--w)}.tier.t4 .ldate{color:var(--acc)}
+
+.grp-card{background:var(--s2);border:1px solid var(--b1);border-radius:6px;overflow:hidden}
+.grp-hd{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1)}
+.grp-name{font-size:11px;font-weight:700}
+.grp-count{font-family:var(--mono);font-size:18px;font-weight:700}
+.grp-body{padding:6px 0;max-height:160px;overflow-y:auto}
+.grp-body::-webkit-scrollbar{width:3px}
+.grp-body::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+.grp-row{display:flex;align-items:center;justify-content:space-between;
+  padding:4px 12px;border-bottom:1px solid #1c2128;gap:8px}
+.grp-row:last-child{border-bottom:none}
+.grp-pname{font-size:11px;color:var(--t1);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.grp-pos{font-size:9px;color:var(--t3)}
+.grp-od{font-family:var(--mono);font-size:9px;color:var(--t2)}
+.sdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;flex-shrink:0;vertical-align:middle}
+.sw{background:var(--g)}.str{background:var(--w)}.sll{background:var(--acc)}.sst{background:var(--r)}
+
+.ll-item{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid #1c2128}
+.ll-item:last-child{border-bottom:none}
+.ll-name{font-size:11px;font-weight:500;color:var(--t1)}
+.ll-sub{font-size:10px;color:var(--t2);margin-top:2px}
+
+.search-input{background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;
+  padding:5px 11px;border-radius:5px;font-family:var(--sans);outline:none;width:260px}
+.search-input:focus{border-color:var(--acc)}
+.pager{display:flex;align-items:center;gap:8px;margin-top:10px;justify-content:flex-end}
+.pager button{background:var(--s2);border:1px solid var(--b1);color:var(--t2);font-size:10px;
+  padding:3px 9px;border-radius:4px;cursor:pointer;font-family:var(--sans)}
+.pager button:hover{border-color:var(--acc);color:var(--acc)}
+.pager button:disabled{opacity:.3;cursor:default}
+.pager span{font-size:10px;color:var(--t3);font-family:var(--mono)}
+
+.legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.legend-i{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3)}
+
+/* ALERT BANNER */
+.alert-bar{background:linear-gradient(135deg,#f8514912,#f0883e10);
+  border:1px solid #f8514940;border-radius:8px;padding:12px 18px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:0}
+.alert-icon{font-size:18px;flex-shrink:0}
+.alert-text{flex:1;font-size:12px;color:var(--t1);line-height:1.6}
+.alert-text b{color:var(--r)}
+.alert-text .warn{color:var(--o)}
+.alert-link{font-size:10px;font-weight:700;color:var(--r);cursor:pointer;
+  text-decoration:underline;white-space:nowrap}
+.alert-none{background:linear-gradient(135deg,#3fb95012,#3fb95008);
+  border:1px solid #3fb95030;border-radius:8px;padding:10px 18px;
+  font-size:11px;color:var(--g);display:flex;align-items:center;gap:8px}
+
+/* SECTION CARDS */
+.section-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.section-2col{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+
+/* SNAPSHOT NUMBERS */
+.snap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.snap-card{background:var(--s2);border-radius:6px;padding:10px 12px;
+  border-left:3px solid}
+.snap-label{font-size:9px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.snap-val{font-size:22px;font-weight:700;font-family:var(--mono);
+  color:var(--t1);line-height:1}
+.snap-sub{font-size:10px;color:var(--t2);margin-top:3px}
+
+/* DELTA ROW */
+.delta-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid #1c2128}
+.delta-row:last-child{border-bottom:none}
+.delta-team{font-family:var(--mono);font-size:11px;font-weight:600;width:56px;flex-shrink:0}
+.delta-queue{font-size:10px;color:var(--t2);width:44px;flex-shrink:0}
+.delta-now{font-family:var(--mono);font-size:13px;font-weight:700;
+  color:var(--t1);width:28px;text-align:right;flex-shrink:0}
+.delta-chg{font-family:var(--mono);font-size:11px;width:32px;
+  text-align:right;flex-shrink:0}
+.delta-bar{flex:1;height:4px;background:var(--s2);border-radius:2px;overflow:hidden}
+.delta-fill{height:100%;border-radius:2px;transition:width .4s}
+
+/* ATTRITION COMPACT */
+.attr-compact{display:flex;flex-direction:column;gap:6px}
+.attr-tier-row{display:flex;align-items:center;gap:8px;padding:6px 10px;
+  border-radius:6px;cursor:default}
+.attr-tier-label{font-size:10px;font-weight:700;width:72px;flex-shrink:0}
+.attr-tier-count{font-family:var(--mono);font-size:16px;font-weight:700;
+  width:24px;text-align:center;flex-shrink:0}
+.attr-names{font-size:10px;color:var(--t2);flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* NJ COMPACT */
+.nj-row{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 0;border-bottom:1px solid #1c2128}
+.nj-row:last-child{border-bottom:none}
+.nj-name{font-size:11px;font-weight:500;color:var(--t1)}
+.nj-meta{font-size:10px;color:var(--t2)}
+.nj-date{font-family:var(--mono);font-size:10px;color:var(--g)}
+
+/* COLLAPSIBLE FILTER */
+.filter-toggle{background:none;border:1px solid var(--b1);color:var(--t3);
+  font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;
+  font-family:var(--sans);transition:all .15s}
+.filter-toggle:hover{border-color:var(--acc);color:var(--acc)}
+.filter-panel{display:none;background:var(--s2);border:1px solid var(--b1);
+  border-radius:6px;padding:8px 14px;margin-top:6px;
+  display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.filter-panel.hidden{display:none}
+
+.footer{padding:10px 24px;border-top:1px solid var(--b1);display:flex;justify-content:space-between}
+.footer span{font-size:10px;color:var(--t3)}
+
+.tt-wrap{position:relative;display:inline-flex;align-items:center;cursor:help}
+.tt-wrap .tt{
+  display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#0a0d14;border:1px solid #30363d;border-radius:6px;padding:8px 12px;
+  font-size:10px;color:#e6edf3;white-space:nowrap;z-index:300;pointer-events:none;
+  font-family:Inter,sans-serif;line-height:1.7;min-width:210px;text-align:left;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.tt-wrap:hover .tt{display:block}
+
+/* LIGHT THEME */
+body.light{
+  --bg:#f4f6f9;
+  --s1:#ffffff;
+  --s2:#f0f2f5;
+  --b1:#d1d8e0;
+  --acc:#1a6fd4;
+  --pu:#7c4dcc;
+  --g:#1a8f3c;
+  --w:#b07a00;
+  --r:#c0392b;
+  --o:#c0620a;
+  --t1:#1a1f2e;
+  --t2:#4a5568;
+  --t3:#8a94a6;
+}
+body.light .top{box-shadow:0 1px 3px #0001}
+body.light .panel{box-shadow:0 1px 4px #0000000a}
+body.light .snap-card{box-shadow:0 1px 3px #0000000a}
+body.light tr:hover td{background:#e8ecf2}
+body.light .kpi{box-shadow:0 1px 4px #0000000a}
+body.light .tier{border-width:1px}
+body.light .grp-card{box-shadow:0 1px 3px #0000000a}
+body.light #agent-modal-inner{box-shadow:0 8px 32px #0003}
+body.light .filter-panel{box-shadow:0 2px 8px #0000000a}
+body.light .tt-wrap .tt{background:#fff;box-shadow:0 4px 16px #0002}
+body.light .alert-bar{background:linear-gradient(135deg,#c0392b0a,#c0620a08)}
+body.light .alert-none{background:linear-gradient(135deg,#1a8f3c0a,#1a8f3c06)}
+</style>
+<script src="/assets/tqa-i18n.js" defer></script>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">MCVN <b>HC Monitor</b></div>
+  
+  <button onclick="toggleTheme()" id="theme-btn"
+    style="background:var(--s2);border:1px solid var(--b1);color:var(--t2);
+    font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;
+    font-family:var(--sans);transition:all .15s">☀ Light</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('cs',this)">CS Team</button>
+  <button class="tab-btn" onclick="switchTab('mng',this)">MNG</button>
+  <button class="tab-btn" onclick="switchTab('agents',this)">Agent List</button>
+  <button id="hccsat-tab-btn" class="tab-btn" onclick="switchTab('hccsat',this)">HC × CSAT</button>
+</div>
+
+<!-- TAB CS -->
+<div class="tab-content active" id="tab-cs">
+  <div style="padding:10px 24px 0;display:flex;align-items:center;gap:10px">
+    <button class="filter-toggle" onclick="toggleCSFilter(this)">⚙ Filter</button>
+    <div id="cs-filter-labels" style="font-size:10px;color:var(--t3)"></div>
+  </div>
+  <div class="filter-panel hidden" id="cs-filter-panel">
+    <div class="fg"><span class="fl">Team</span>
+      <select id="cs-team" onchange="renderCS()">
+        <option value="ALL">All Teams</option>
+        <option value="CHAT">CHAT</option>
+        <option value="CALL">CALL</option>
+        <option value="MULTI">MULTI</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Queue</span>
+      <select id="cs-queue" onchange="renderCS()">
+        <option value="ALL">All Queues</option>
+        <option value="Buyer">Buyer</option>
+        <option value="Seller">Seller</option>
+        <option value="All">All (MT)</option>
+        <option value="Log">Log</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Period</span>
+      <select id="cs-period" onchange="renderCS()">
+        <option value="today">Today (15/08)</option>
+        <option value="w33">W33 (10–15/08)</option>
+        <option value="w32">W32 (03–09/08)</option>
+        <option value="w31">W31 (27/07–02/08)</option>
+        <option value="w30">W30 (20–26/07)</option>
+        <option value="w29">W29 (13–19/07)</option>
+        <option value="w28">W28 (06–12/07)</option>
+        <option value="w27">W27 (29/06–05/07)</option>
+        <option value="t8">T8/2026 (MTD)</option>
+        <option value="t7">T7/2026</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ALERT BANNER -->
+    <div id="cs-alert"></div>
+    <div id="cs-warn"></div>
+
+    <!-- 1. HC SNAPSHOT -->
+    <div>
+      <div class="sh">
+        <span class="sl">1 — HC hiện tại</span><div class="sd"></div>
+        <span class="sn" id="cs-period-lbl"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <!-- KPI summary -->
+        <div class="panel">
+          <div class="ph"><span class="pt">Tổng HC</span><span class="pm" id="cs-hc-total">—</span></div>
+          <div class="pb">
+            <div class="snap-grid" id="cs-snap-grid"></div>
+            <div style="margin-top:10px;font-size:10px;color:var(--t3)">
+              <span style="color:var(--g)">■</span> Working &nbsp;
+              <span style="color:var(--w)">■</span> Training &nbsp;
+              <span style="color:var(--acc)">■</span> Pending &nbsp;
+              <span style="color:var(--t3)">■</span> Long Leave (không tính HC)
+            </div>
+          </div>
+        </div>
+        <!-- HC by team table -->
+        <div class="panel">
+          <div class="ph"><span class="pt">By Team × Queue</span>
+            <div class="tt-wrap" style="cursor:help">
+              <span style="font-size:10px;color:var(--t3);border-bottom:1px dashed var(--t3)">
+                HC = ?</span>
+              <div class="tt">
+                <b>Total HC</b> = Working + On training + Pending<br>
+                <span style="color:var(--r)">Không tính:</span> Long-term leave, Stopped
+              </div>
+            </div>
+          </div>
+          <div class="pb" style="padding:8px">
+            <table id="cs-hc-table">
+              <thead><tr>
+                <th>Team</th><th>Queue</th>
+                <th class="c">HC</th><th class="c">%</th>
+                <th class="c" style="color:var(--g)">W</th>
+                <th class="c" style="color:var(--w)">T</th>
+                <th class="c" style="color:var(--acc)">P</th>
+                <th class="c" style="color:var(--t3)">LL</th>
+              </tr></thead>
+              <tbody id="cs-hc-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. WoW DELTA -->
+    <div>
+      <div class="sh"><span class="sl">2 — Thay đổi so với tuần trước</span>
+        <div class="sd"></div><span class="sn" id="cs-wow-lbl"></span></div>
+      <div class="panel">
+        <div class="ph"><span class="pt">WoW Delta</span>
+          <span class="pm">vs T7 baseline</span></div>
+        <div class="pb" id="cs-delta-body"></div>
+      </div>
+    </div>
+
+    <!-- 3. ATTRITION + NEW JOINS -->
+    <div>
+      <div class="sh"><span class="sl">3 — Ai vào, ai ra</span><div class="sd"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="panel">
+          <div class="ph"><span class="pt">Sắp nghỉ — LWD (Báo IH)</span>
+            <span class="pm" id="cs-attr-meta">—</span></div>
+          <div class="pb">
+            <div class="attr-compact" id="cs-attr-compact"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Mới vào — 4 tuần gần nhất</span>
+            <span class="pm" id="cs-nj-meta">—</span></div>
+          <div class="pb" id="cs-nj-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LONG LEAVE (collapsible) -->
+    <details style="background:var(--s1);border:1px solid var(--b1);border-radius:8px;overflow:hidden">
+      <summary style="padding:10px 14px;cursor:pointer;font-size:12px;
+        font-weight:600;color:var(--t2);list-style:none;
+        display:flex;align-items:center;justify-content:space-between">
+        <span>Long-term Leave</span>
+        <span id="cs-ll-meta" style="font-size:10px;font-family:var(--mono);color:var(--t3)">—</span>
+      </summary>
+      <div class="pb" id="cs-ll-body" style="padding:12px 14px"></div>
+    </details>
+
+  </div>
+</div>
+
+<!-- TAB MNG -->
+<div class="tab-content" id="tab-mng">
+  <div class="fb">
+    <div class="fg"><span class="fl">Group</span>
+      <select id="mng-grp" onchange="renderMNG()">
+        <option value="ALL">All Groups</option>
+        <option value="QA">QA</option>
+        <option value="AM">AM</option>
+        <option value="Senior">Senior</option>
+        <option value="TL">TL</option>
+        <option value="Supervisor">Supervisor</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Status</span>
+      <select id="mng-status" onchange="renderMNG()">
+        <option value="ALL">All Active</option>
+        <option value="Working">Working</option>
+        <option value="On training">On Training</option>
+        <option value="Long-term leave">Long Leave</option>
+      </select>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="kpi-row" id="mng-kpi"></div>
+    <div>
+      <div class="sh"><span class="sl">MNG by Group</span><div class="sd"></div></div>
+      <div class="g3" id="mng-grp-grid"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Summary by Group</span><span class="pm" id="mng-total-meta">—</span></div>
+      <div class="pb"><table>
+        <thead><tr><th>Group</th><th class="c">HC</th><th class="c">%</th>
+          <th class="c">Working</th><th class="c">Training</th><th class="c">Long Leave</th>
+          <th style="width:28%">Bar</th></tr></thead>
+        <tbody id="mng-summary-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB AGENTS -->
+<div class="tab-content" id="tab-agents">
+
+  <!-- NEWBIE BY MONTH (độc lập — KHÔNG bị filter bên dưới lọc) -->
+  <div class="wrap">
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Newbie theo tháng</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <select id="nb-view" onchange="renderNewbie()" style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:3px 8px;border-radius:5px;font-family:var(--sans);cursor:pointer">
+            <option value="new">New — mới vào trong tháng</option>
+            <option value="total">Total — CS 0–2 tháng</option>
+          </select>
+          <span class="pm" id="nb-meta">—</span>
+        </div>
+      </div>
+      <div class="pb"><table>
+        <thead><tr>
+          <th>Tháng</th>
+          <th class="c" id="nb-col-total">New</th>
+          <th class="c" style="color:#4493f8">Buyer</th>
+          <th class="c" style="color:#f0883e">Seller</th>
+          <th class="c">Δ MoM</th>
+          <th class="c" style="color:#3fb950">CALL</th>
+          <th class="c" style="color:#4493f8">CHAT</th>
+          <th class="c" style="color:#f85149">Stop</th>
+          <th class="c">Batches</th>
+          <th style="width:26%">Trend</th>
+        </tr></thead>
+        <tbody id="nb-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- Filters below apply to Batch Summary + Agent List only -->
+  <div class="fb">
+    <div class="fg"><span class="fl">Team</span>
+      <select id="ag-team" onchange="renderAgents()">
+        <option value="ALL">All Teams</option>
+        <option value="CHAT">CHAT</option>
+        <option value="CALL">CALL</option>
+        <option value="MULTI">MULTI</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Queue</span>
+      <select id="ag-queue" onchange="renderAgents()">
+        <option value="ALL">All Queues</option>
+        <option value="Buyer">Buyer</option>
+        <option value="Seller">Seller</option>
+        <option value="All">All (MT)</option>
+        <option value="Log">Log</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Status</span>
+      <select id="ag-status" onchange="renderAgents()">
+        <option value="ACTIVE">Active only</option>
+        <option value="ALL">All incl. Stopped</option>
+        <option value="Working">Working</option>
+        <option value="On training">On Training</option>
+        <option value="Stopped">Stopped (recent)</option>
+      </select>
+    </div>
+  </div>
+  <div class="wrap">
+
+    <!-- BATCH SUMMARY -->
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Batch Summary — CS Team</span>
+        <span class="pm" id="bat-meta">—</span>
+      </div>
+      <div class="pb">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <input class="search-input" id="bat-search" placeholder="Tìm batch... (VD: K200)" oninput="batSearch()" style="width:180px">
+          <div style="display:flex;gap:6px">
+            <button onclick="batFilter('all',this)" class="tab-btn active" style="padding:4px 10px;font-size:10px;border-bottom:2px solid var(--acc);margin:0">All</button>
+            <button onclick="batFilter('active',this)" class="tab-btn" style="padding:4px 10px;font-size:10px;margin:0">Has Active</button>
+            <button onclick="batFilter('recent',this)" class="tab-btn" style="padding:4px 10px;font-size:10px;margin:0">K150+</button>
+          </div>
+          <div class="legend" style="margin:0">
+            <div class="legend-i"><span class="sdot sw"></span>Working</div>
+            <div class="legend-i"><span class="sdot str"></span>Training</div>
+            <div class="legend-i"><span class="sdot" style="background:var(--acc)"></span>Pending</div>
+            <div class="legend-i"><span class="sdot sll"></span>Long Leave</div>
+            <div class="legend-i"><span class="sdot sst"></span>Stopped</div>
+          </div>
+        </div>
+        <table id="bat-table">
+          <thead><tr>
+            <th onclick="batSort('batch_num')" style="cursor:pointer">Batch ↕</th>
+            <th class="c">Total</th>
+            <th class="c" style="color:var(--g)">Working</th>
+            <th class="c" style="color:var(--w)">Training</th>
+            <th class="c" style="color:var(--acc)">Pending</th>
+            <th class="c" style="color:#4493f8">Long Leave</th>
+            <th class="c" style="color:var(--r)">Stopped</th>
+            <th class="c">Retention</th>
+            <th style="width:22%">Status Bar</th>
+          </tr></thead>
+          <tbody id="bat-tbody"></tbody>
+        </table>
+        <div class="pager">
+          <button id="bat-prev" onclick="batPage(-1)">← Prev</button>
+          <span id="bat-page-info">—</span>
+          <button id="bat-next" onclick="batPage(1)">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Agent List</span>
+        <span class="pm" id="ag-meta">—</span>
+      </div>
+      <div class="pb">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <input class="search-input" id="ag-search" placeholder="Tìm tên agent..." oninput="agSearch()">
+          <span style="font-size:10px;color:var(--t3)" id="ag-sort-info">Click header để sort</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th onclick="agSort('name')" style="cursor:pointer"># Agent Name ↕</th>
+            <th onclick="agSort('team')" style="cursor:pointer">Team ↕</th>
+            <th>Queue / Position</th>
+            <th>Status</th>
+            <th onclick="agSort('online_date')" style="cursor:pointer">Online Date ↕</th>
+            <th onclick="agSort('lwd')" style="cursor:pointer">LWD ↕</th>
+            <th class="r">Weeks Active</th>
+          </tr></thead>
+          <tbody id="ag-tbody"></tbody>
+        </table>
+        <div class="pager">
+          <button id="ag-prev" onclick="agPage(-1)">← Prev</button>
+          <span id="ag-page-info">—</span>
+          <button id="ag-next" onclick="agPage(1)">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- TAB HC × CSAT -->
+<div class="tab-content" id="tab-hccsat">
+  <div class="fb">
+    <div class="fg"><span class="fl">Group</span>
+      <select id="hc-csat-grp" onchange="renderHCCSAT()">
+        <option value="ALL">All Groups</option>
+        <option value="Pending">Pending</option>
+        <option value="Long Leave">Long Leave</option>
+        <option value="LWD ≤1W">LWD ≤1 tuần</option>
+        <option value="LWD 1–2W">LWD 1–2 tuần</option>
+        <option value="LWD 2–4W">LWD 2–4 tuần</option>
+        <option value="LWD 1–2M">LWD 1–2 tháng</option>
+      </select>
+    </div>
+    <div class="fg"><span class="fl">Team</span>
+      <select id="hc-csat-team" onchange="renderHCCSAT()">
+        <option value="ALL">All Teams</option>
+        <option value="CALL">CALL</option>
+        <option value="CHAT">CHAT</option>
+        <option value="MULTI">MULTI</option>
+      </select>
+    </div>
+  </div>
+  <div class="wrap">
+
+    <!-- KPI CARDS — clickable -->
+    <div>
+      <div class="sh"><span class="sl">CSAT by HC Group</span><div class="sd"></div>
+        <span class="sn">Click card để xem chi tiết agents</span></div>
+      <div id="hccsat-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+    </div>
+
+    <!-- OBSERVATION -->
+    <div id="hccsat-insight" style="background:linear-gradient(135deg,#4493f810,#a371f710);
+      border:1px solid #4493f825;border-radius:8px;padding:12px 16px;
+      font-size:11px;color:var(--t2);line-height:1.8;display:none"></div>
+
+    <!-- TREND -->
+    <div>
+      <div class="sh"><span class="sl">CSAT Trend by Group × Week</span><div class="sd"></div>
+        <span class="sn">Gray = Overall baseline</span></div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Weekly CSAT%</span><span class="pm">W27–W33</span></div>
+        <div class="pb" id="hccsat-trend"></div>
+      </div>
+    </div>
+
+    <!-- DETAIL TABLE — by week or month -->
+    <div>
+      <div class="sh"><span class="sl" id="hccsat-tbl-lbl">Group × Period</span>
+        <div class="sd"></div>
+        <select id="hc-csat-view" onchange="renderHCCSAT()"
+          style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:4px 9px;border-radius:5px;font-family:var(--sans);cursor:pointer;margin-right:10px">
+          <option value="week">By Week</option>
+          <option value="month">By Month</option>
+          <option value="agent">By Agent</option>
+        </select>
+        <span class="sn" id="hccsat-tbl-meta">—</span></div>
+      <div class="panel">
+        <div class="ph"><span class="pt" id="hccsat-tbl-title">—</span>
+          <span class="pm">CSAT = good/(good+bad)</span></div>
+        <div class="pb"><table>
+          <thead id="hccsat-thead"></thead>
+          <tbody id="hccsat-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CSAT × HC by Team / Queue -->
+    <div>
+      <div class="sh"><span class="sl">CSAT × HC theo Team / Queue</span>
+        <div class="sd"></div>
+        <select id="csat-hc-dim" onchange="renderCsatHc()"
+          style="background:var(--s2);border:1px solid var(--b1);color:var(--t1);font-size:11px;padding:4px 9px;border-radius:5px;font-family:var(--sans);cursor:pointer">
+          <option value="overall">Overall</option>
+          <option value="team" selected>By Team</option>
+          <option value="queue">By Queue</option>
+        </select></div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Volume = số agent · % HC = tỷ lệ agent active · CSAT = good/(good+bad)</span></div>
+        <div class="pb"><table>
+          <thead id="csathc-thead"></thead>
+          <tbody id="csathc-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AGENT DETAIL MODAL -->
+<div id="agent-modal" style="display:none;position:fixed;inset:0;z-index:500;
+  background:#0009;overflow-y:auto" onclick="closeModal(event)">
+  <div id="agent-modal-inner" style="background:var(--s1);border:1px solid var(--b1);
+    border-radius:10px;max-width:820px;margin:40px auto;padding:0;overflow:hidden"
+    onclick="event.stopPropagation()">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--b1);
+      display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div id="modal-title" style="font-size:14px;font-weight:700;color:var(--t1)">—</div>
+        <div id="modal-sub" style="font-size:10px;color:var(--t2);margin-top:3px">—</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <button id="modal-back" style="display:none;background:var(--s2);border:1px solid var(--acc);
+          color:var(--acc);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;
+          font-family:var(--sans)"></button>
+        <button onclick="closeModal()" style="background:var(--s2);border:1px solid var(--b1);
+          color:var(--t2);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;
+          font-family:var(--sans)">✕ Close</button>
+      </div>
+    </div>
+    <div id="modal-body" style="padding:16px 18px;max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>MCVN BPO — HC Monitor / Internal use only</span>
+  <span id="ts">—</span>
+</div>
+
+<script>
+let CS_AGENTS=[], MNG_AGENTS=[], BATCH_DATA=[];
+let CSAT_DATA={tq_week:[],tq_month:[],bat_month:[],overall_week:[]};
+let HC_CSAT={grp_week:[],grp_month:[],grp_agents:{},overall_week:[]};
+let HC_VIEW=HC_CSAT;   // HC×CSAT current view (all teams, or a team-filtered rebuild)
+// ============================================================
+// CONSTANTS
+// ============================================================
+let TODAY   = '2026-08-15';            // set from payload.generated_at at load
+let TODAY_D = new Date(TODAY);
+const HC_S       = ['Working','On training','Pending'];
+const ACTIVE_S   = ['Working','On training','Pending','Long-term leave'];
+
+let PERIODS = {};                      // built from payload in buildPeriods()
+let PREV    = {};
+let MONTH_KEYS = [];                   // month period keys ascending, e.g. ['t7','t8']
+let CUR_WEEK='', LAST_FULL_WEEK='', PREV_FULL_WEEK='';  // newest (partial) / last complete / prev complete
+
+const TC = {CHAT:'#4493f8',CALL:'#3fb950',MULTI:'#a371f7',EMAIL:'#d29922',MNG:'#f0883e'};
+const QC = {Buyer:'#4493f8',Seller:'#f0883e',All:'#a371f7',Log:'#3fb950',Unknown:'#484f58'};
+const GC = {QA:'#a371f7',AM:'#4493f8',Senior:'#3fb950',TL:'#f0883e',Supervisor:'#d29922',Other:'#484f58'};
+const SC = {Working:'#3fb950','On training':'#d29922','Long-term leave':'#4493f8',Stopped:'#f85149'};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function pd(s){ return s ? new Date(s) : null; }
+function days(a,b){ return Math.round((b-a)/86400000); }
+function weeksSince(s){ return s ? Math.round((TODAY_D-new Date(s))/(7*86400000)) : null; }
+
+// KEY CHANGE: online_date NULL → counts as active (no date = counts)
+function isActive(a, sD, eD){
+  if(!ACTIVE_S.includes(a.status)) return false;
+  const od  = pd(a.online_date);
+  if(od && od > eD) return false;     // not yet started
+  // P1 = trust Working Status: a Working/Training/Pending agent stays active
+  // even if its LWD is stale (already passed). Only Long-term leave honours LWD.
+  if(a.status==='Long-term leave'){
+    const lwd = pd(a.lwd);
+    if(lwd && lwd < sD) return false;
+  }
+  return true;
+}
+
+// Data-integrity check: active status but conflicting date (LWD passed / not started).
+function statusDateConflicts(list){
+  return list.filter(a=>{
+    if(!HC_S.includes(a.status)) return false;
+    const od=pd(a.online_date), lwd=pd(a.lwd);
+    return (lwd && lwd < TODAY_D) || (od && od > TODAY_D);
+  }).map(a=>{
+    const lwd=pd(a.lwd), od=pd(a.online_date);
+    const reason = (lwd && lwd < TODAY_D) ? `LWD ${a.lwd} đã qua` : `Online ${a.online_date} chưa tới`;
+    return {name:a.name, team:a.team||a.grp||'', status:a.status, reason};
+  });
+}
+
+function activeIn(agents, p){
+  const sD=new Date(p.s), eD=new Date(p.e);
+  return agents.filter(a=>isActive(a,sD,eD));
+}
+
+function aggTQ(agents){
+  const m={};
+  agents.forEach(a=>{
+    const k=`${a.team}|${a.queue||''}`;
+    if(!m[k]) m[k]={team:a.team,queue:a.queue||'',list:[]};
+    m[k].list.push(a);
+  });
+  return Object.values(m).sort((a,b)=>a.team.localeCompare(b.team)||a.queue.localeCompare(b.queue));
+}
+
+function dlt(n){
+  if(n===null||n===undefined) return '<span class="dn">—</span>';
+  if(n>0) return `<span class="dg">+${n}</span>`;
+  if(n<0) return `<span class="dr">${n}</span>`;
+  return '<span class="dn">0</span>';
+}
+
+function sdot(status){
+  const cls={Working:'sw','On training':'str','Long-term leave':'sll',Stopped:'sst'}[status]||'sst';
+  return `<span class="sdot ${cls}"></span>`;
+}
+
+// ============================================================
+// CS TAB
+// ============================================================
+function csFiltered(){
+  const t=document.getElementById('cs-team').value;
+  const q=document.getElementById('cs-queue').value;
+  return CS_AGENTS.filter(a=>{
+    if(t!=='ALL'&&a.team!==t) return false;
+    if(q!=='ALL'&&a.queue!==q) return false;
+    return true;
+  });
+}
+
+function toggleCSFilter(btn){
+  const panel=document.getElementById('cs-filter-panel');
+  panel.classList.toggle('hidden');
+  btn.textContent=panel.classList.contains('hidden')?'⚙ Filter':'✕ Filter';
+}
+
+const CSAT_TARGETS={CHAT:85,CALL:95,MULTI:86,default:85};
+function csatTarget(team){
+  if(team.startsWith('CH')) return CSAT_TARGETS.CHAT;
+  if(team.startsWith('CA')) return CSAT_TARGETS.CALL;
+  if(team.startsWith('MT')) return CSAT_TARGETS.MULTI;
+  return CSAT_TARGETS.default;
+}
+
+function renderCS(){
+  const pKey  = document.getElementById('cs-period').value;
+  const p     = PERIODS[pKey];
+  const agents= csFiltered();
+  const active= activeIn(agents,p);
+  const prevA = PREV[pKey] ? activeIn(agents,PERIODS[PREV[pKey]]) : null;
+
+  document.getElementById('cs-period-lbl').textContent = p.label;
+
+  // Update filter labels
+  const t=document.getElementById('cs-team').value;
+  const q=document.getElementById('cs-queue').value;
+  const labels=[];
+  if(t!=='ALL') labels.push(t);
+  if(q!=='ALL') labels.push(q);
+  document.getElementById('cs-filter-labels').textContent =
+    labels.length ? labels.join(' · ') : 'Showing all teams';
+
+  // ── 1. ALERT BANNER ────────────────────────────────────
+  renderCSAlert(agents);
+  renderCSWarn();
+
+  // ── 2. HC SNAPSHOT ─────────────────────────────────────
+  const hcOnly=active.filter(a=>HC_S.includes(a.status));
+  const tot=hcOnly.length;
+  const wk=hcOnly.filter(a=>a.status==='Working').length;
+  const tr=hcOnly.filter(a=>a.status==='On training').length;
+  const pd2=hcOnly.filter(a=>a.status==='Pending').length;
+  const ll=active.filter(a=>a.status==='Long-term leave').length;
+  const sD=new Date(p.s), eD=new Date(p.e);
+  const nj=agents.filter(a=>{const od=pd(a.online_date);return od&&od>=sD&&od<=eD&&HC_S.includes(a.status);}).length;
+
+  document.getElementById('cs-hc-total').textContent=`${tot} agents HC`;
+
+  // Snap grid
+  const agg=aggTQ(active);
+  const snapItems=[
+    {label:'Total HC',val:tot,color:'var(--acc)'},
+    {label:'Working',val:wk,color:'var(--g)'},
+    {label:'Training',val:tr,color:'var(--w)'},
+    {label:'Pending',val:pd2,color:'#4493f8'},
+    {label:'Long Leave',val:ll,color:'var(--t3)'},
+    {label:'New Joins',val:nj,color:'var(--g)'},
+  ];
+  document.getElementById('cs-snap-grid').innerHTML=snapItems.map(s=>`
+    <div class="snap-card" style="border-color:${s.color}">
+      <div class="snap-label">${s.label}</div>
+      <div class="snap-val" style="color:${s.color}">${s.val}</div>
+    </div>`).join('');
+
+  // HC table
+  const maxHC=Math.max(...agg.map(x=>x.list.filter(a=>HC_S.includes(a.status)).length),1);
+  document.getElementById('cs-hc-tbody').innerHTML=agg.map(r=>{
+    const c=r.list.filter(a=>HC_S.includes(a.status)).length;
+    const w2=r.list.filter(a=>a.status==='Working').length;
+    const t2=r.list.filter(a=>a.status==='On training').length;
+    const p2=r.list.filter(a=>a.status==='Pending').length;
+    const l2=r.list.filter(a=>a.status==='Long-term leave').length;
+    const pct=tot?Math.round(c/tot*100):0;
+    return `<tr>
+      <td class="b" style="color:${TC[r.team]||'var(--t1)'};font-size:11px">${r.team}</td>
+      <td style="color:${QC[r.queue]||'var(--t2)'};font-size:10px">${r.queue}</td>
+      <td class="c b mn">${c}</td>
+      <td class="c mn" style="color:var(--t2)">${pct}%</td>
+      <td class="c mn" style="color:var(--g)">${w2}</td>
+      <td class="c mn" style="color:var(--w)">${t2}</td>
+      <td class="c mn" style="color:var(--acc)">${p2||'—'}</td>
+      <td class="c mn" style="color:var(--t3)">${l2||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── 3. WoW DELTA ───────────────────────────────────────
+  const prevAgg=prevA?aggTQ(prevA):null;
+  const t7Agg=aggTQ(activeIn(agents,PERIODS[MONTH_KEYS[0]]));
+  document.getElementById('cs-wow-lbl').textContent=
+    PREV[pKey]?`vs ${PERIODS[PREV[pKey]].label}`:'No previous period';
+
+  document.getElementById('cs-delta-body').innerHTML=`<div class="attr-compact">
+    ${agg.map(r=>{
+      const cur=r.list.filter(a=>HC_S.includes(a.status)).length;
+      const prevR=prevAgg?prevAgg.find(x=>x.team===r.team&&x.queue===r.queue):null;
+      const prev=prevR?prevR.list.filter(a=>HC_S.includes(a.status)).length:null;
+      const t7R=t7Agg.find(x=>x.team===r.team&&x.queue===r.queue);
+      const t7v=t7R?t7R.list.filter(a=>HC_S.includes(a.status)).length:null;
+      const wow=prev!==null?cur-prev:null;
+      const wowC=wow===null?'var(--t3)':wow>0?'var(--g)':wow<0?'var(--r)':'var(--t2)';
+      const wowStr=wow===null?'—':wow>0?`+${wow}`:String(wow);
+      const maxV=Math.max(cur,prev||0,t7v||0,1);
+      return `<div class="delta-row">
+        <div class="delta-team" style="color:${TC[r.team]||'var(--t2)'}">${r.team}</div>
+        <div class="delta-queue" style="color:${QC[r.queue]||'var(--t3)'}">${r.queue}</div>
+        <div class="delta-now">${cur}</div>
+        <div class="delta-chg" style="color:${wowC};font-weight:600">${wowStr}</div>
+        <div class="delta-bar">
+          <div class="delta-fill" style="width:${Math.round(cur/maxV*100)}%;background:${TC[r.team]||'var(--acc)'}80"></div>
+        </div>
+        <div style="font-size:9px;color:var(--t3);font-family:var(--mono);min-width:50px;text-align:right">
+          T7: ${t7v!==null?t7v:'—'}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // ── 4. ATTRITION compact ───────────────────────────────
+  const cutoff=new Date(TODAY_D); cutoff.setDate(cutoff.getDate()-56);  // recently stopped: last ~8 weeks
+  const stopped=CS_AGENTS.filter(a=>{
+    const tf=document.getElementById('cs-team').value;
+    const qf=document.getElementById('cs-queue').value;
+    if(tf!=='ALL'&&a.team!==tf) return false;
+    if(qf!=='ALL'&&a.queue!==qf) return false;
+    const lwd2=pd(a.lwd);
+    return a.status==='Stopped'&&lwd2&&lwd2>=cutoff&&lwd2<=TODAY_D;
+  });
+  const tiers=[
+    {label:'≤1 tuần',color:'var(--r)',bg:'#f8514910',min:0,max:7,list:[]},
+    {label:'1–2 tuần',color:'var(--o)',bg:'#f0883e10',min:8,max:14,list:[]},
+    {label:'2–4 tuần',color:'var(--w)',bg:'#d2992210',min:15,max:28,list:[]},
+    {label:'1–2 tháng',color:'var(--acc)',bg:'#4493f810',min:29,max:56,list:[]},
+  ];
+  stopped.forEach(a=>{
+    const d=days(pd(a.lwd),TODAY_D);
+    const t=tiers.find(x=>d>=x.min&&d<=x.max);
+    if(t) t.list.push(a);
+  });
+  document.getElementById('cs-attr-meta').textContent=`${stopped.length} agents`;
+  document.getElementById('cs-attr-compact').innerHTML=tiers.map(tier=>`
+    <div class="attr-tier-row" style="background:${tier.bg}">
+      <div class="attr-tier-label" style="color:${tier.color};font-family:var(--mono)">${tier.label}</div>
+      <div class="attr-tier-count" style="color:${tier.color}">${tier.list.length}</div>
+      <div class="attr-names">
+        ${tier.list.length?tier.list.map(a=>`<span title="${a.lwd}">${a.name.split(' ').pop()}</span>`).join(', '):'Không có'}
+      </div>
+    </div>`).join('');
+
+  // ── 5. NEW JOINS ───────────────────────────────────────
+  const njCut=new Date(TODAY_D); njCut.setDate(njCut.getDate()-28);  // new joins: last 4 weeks
+  const njA=agents.filter(a=>{
+    const od2=pd(a.online_date);
+    return od2&&od2>=njCut&&od2<=TODAY_D&&HC_S.includes(a.status);
+  }).sort((a,b)=>pd(b.online_date)-pd(a.online_date));
+  document.getElementById('cs-nj-meta').textContent=`${njA.length} agents`;
+  document.getElementById('cs-nj-body').innerHTML=njA.length===0
+    ?'<div style="font-size:11px;color:var(--t3)">Không có</div>'
+    :njA.map(a=>`<div class="nj-row">
+      <div>
+        <div class="nj-name">${a.name}</div>
+        <div class="nj-meta">${a.team} · ${a.queue} · <span style="color:${SC[a.status]||'var(--t3)'}">${a.status}</span></div>
+      </div>
+      <div class="nj-date">${a.online_date}</div>
+    </div>`).join('');
+
+  // ── 6. LONG LEAVE ──────────────────────────────────────
+  const llA=agents.filter(a=>a.status==='Long-term leave');
+  document.getElementById('cs-ll-meta').textContent=`${llA.length} agents`;
+  document.getElementById('cs-ll-body').innerHTML=llA.length===0
+    ?'<div style="font-size:11px;color:var(--t3)">Không có</div>'
+    :llA.map(a=>{
+      const dLeft=a.ll_end?days(TODAY_D,pd(a.ll_end)):null;
+      return `<div class="ll-item">
+        <div><div class="ll-name">${a.name}</div>
+        <div class="ll-sub">${a.team} · ${a.queue}</div></div>
+        <div style="text-align:right">
+          ${a.ll_end
+            ?`<div class="mn" style="font-size:10px;color:${dLeft!==null&&dLeft<=14?'var(--w)':'var(--acc)'}">
+                Return: ${a.ll_end}</div>
+               <div style="font-size:9px;color:var(--t3)">${dLeft!==null?dLeft+'d left':''}</div>`
+            :'<div style="font-size:10px;color:var(--t3)">—</div>'}
+        </div>
+      </div>`;
+    }).join('');
+}
+
+// ── ALERT BANNER ─────────────────────────────────────────
+// Data-integrity warning: status active but LWD/online conflicts (trust status, but flag it).
+function renderCSWarn(){
+  const box=document.getElementById('cs-warn'); if(!box) return;
+  const conflicts=statusDateConflicts(CS_AGENTS.concat(MNG_AGENTS));
+  if(!conflicts.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<div style="background:linear-gradient(135deg,#d2992218,#f0883e10);
+    border:1px solid #d2992240;border-radius:8px;padding:10px 14px;margin-bottom:12px;
+    font-size:11px;color:var(--t2);line-height:1.7">
+    <span style="color:var(--w);font-weight:700">⚠ Lưu ý dữ liệu (${conflicts.length}):</span>
+    tin theo <b>Working Status</b> nên vẫn tính là active, nhưng ngày bị lệch — nên kiểm tra/cập nhật sheet:
+    <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
+      ${conflicts.map(c=>`<div style="font-family:var(--mono);font-size:10px">
+        • <b style="color:var(--t1)">${c.name}</b> <span style="color:${SC[c.status]||'var(--t3)'}">${c.status}</span>
+        ${c.team?`· ${c.team}`:''} — <span style="color:var(--w)">${c.reason}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderCSAlert(agents){
+  const today2=TODAY_D;
+  const twoWeeks=new Date(today2); twoWeeks.setDate(twoWeeks.getDate()+14);
+
+  // Agents with LWD in next 14 days AND CSAT below target
+  const atRisk=[];
+  HC_CSAT.grp_agents['LWD ≤1W']&&HC_CSAT.grp_agents['LWD ≤1W'].forEach(a=>{
+    const target=csatTarget(a.team);
+    if(a.csat_overall!==null&&a.csat_overall<target) atRisk.push({...a,tier:'≤1W',target});
+  });
+  HC_CSAT.grp_agents['LWD 1–2W']&&HC_CSAT.grp_agents['LWD 1–2W'].forEach(a=>{
+    const target=csatTarget(a.team);
+    if(a.csat_overall!==null&&a.csat_overall<target) atRisk.push({...a,tier:'1–2W',target});
+  });
+
+  // Pending agents with CSAT below target
+  const pendingRisk=[];
+  (HC_CSAT.grp_agents['Pending']||[]).forEach(a=>{
+    const target=csatTarget(a.team);
+    if(a.csat_overall!==null&&a.csat_overall<target) pendingRisk.push({...a,target});
+  });
+
+  const box=document.getElementById('cs-alert');
+  if(!atRisk.length&&!pendingRisk.length){
+    box.innerHTML=`<div class="alert-none">
+      ✓ Không có agent nào cần action ngay hôm nay
+    </div>`;
+    return;
+  }
+
+  let lines=[];
+  if(atRisk.length){
+    const names=atRisk.map(a=>`<b>${a.name.split(' ').pop()}</b> (LWD ${a.lwd}, CSAT ${a.csat_overall}% &lt; target ${a.target}%)`).join(', ');
+    lines.push(`<span style="color:var(--r)">⚠ ${atRisk.length} agent sắp nghỉ có CSAT dưới target:</span> ${names}`);
+  }
+  if(pendingRisk.length){
+    const names=pendingRisk.map(a=>`<b>${a.name.split(' ').pop()}</b> (${a.csat_overall}%)`).join(', ');
+    lines.push(`<span class="warn">↘ ${pendingRisk.length} Pending agent CSAT dưới target:</span> ${names}`);
+  }
+
+  box.innerHTML=`<div class="alert-bar">
+    <div class="alert-icon">⚑</div>
+    <div class="alert-text">${lines.join('<br>')}</div>
+    <div class="alert-link" onclick="switchTab('hccsat',document.getElementById('hccsat-tab-btn'))">
+      Xem HC × CSAT →</div>
+  </div>`;
+}
+
+function csFiltered(){
+  const t=document.getElementById('cs-team').value;
+  const q=document.getElementById('cs-queue').value;
+  return CS_AGENTS.filter(a=>{
+    if(t!=='ALL'&&a.team!==t) return false;
+    if(q!=='ALL'&&a.queue!==q) return false;
+    return true;
+  });
+}
+
+
+// ============================================================
+// MNG TAB
+// ============================================================
+function renderMNG(){
+  const grpF=document.getElementById('mng-grp').value;
+  const stF =document.getElementById('mng-status').value;
+  // Base roster: group-filtered + active today (incl Long-term leave), ignoring STATUS filter.
+  const base=MNG_AGENTS.filter(a=>(grpF==='ALL'||a.grp===grpF) && isActive(a,TODAY_D,TODAY_D));
+  const hcMng=base.filter(a=>HC_S.includes(a.status));   // active working HC
+  const tot=hcMng.length;
+  // Display set for the grid & summary: apply STATUS filter (so "Long Leave" lists names).
+  const agents = (stF==='ALL') ? hcMng : base.filter(a=>a.status===stF);
+  const grps=['QA','AM','Senior','TL','Supervisor','Other'];
+
+  // KPI cards = stable overview (not affected by the STATUS filter)
+  document.getElementById('mng-kpi').innerHTML=[
+    {l:'Total MNG HC',v:tot,s:'Active today',c:'o'},
+    {l:'Working',v:hcMng.filter(a=>a.status==='Working').length,s:`${tot?Math.round(hcMng.filter(a=>a.status==='Working').length/tot*100):0}% of MNG`,c:'g'},
+    {l:'Training',v:hcMng.filter(a=>a.status==='On training').length,s:'On training',c:'w'},
+    {l:'Long Leave',v:base.filter(a=>a.status==='Long-term leave').length,s:'Long-term leave',c:'a'},
+    {l:'QA Group',v:hcMng.filter(a=>a.grp==='QA').length,s:'TQA + Trainer',c:'p'},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="kl">${k.l}</div><div class="kv">${k.v}</div><div class="ks">${k.s}</div></div>`).join('');
+
+  const activeGrps=grpF==='ALL'?grps:[grpF];
+  document.getElementById('mng-grp-grid').innerHTML=activeGrps.map(grp=>{
+    const list=agents.filter(a=>a.grp===grp).sort((a,b)=>(a.position||'').localeCompare(b.position||''));
+    if(!list.length) return '';
+    const gc=GC[grp]||'var(--t2)';
+    return `<div class="grp-card">
+      <div class="grp-hd">
+        <div class="grp-name" style="color:${gc}">${grp}</div>
+        <div class="grp-count" style="color:${gc}">${list.length}</div>
+      </div>
+      <div class="grp-body">
+        ${list.map(a=>`<div class="grp-row">
+          <div>
+            <div class="grp-pname">${a.name}</div>
+            <div class="grp-pos">${a.position}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            ${sdot(a.status)}
+            <span class="grp-od">${a.online_date||'—'}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  const denom=agents.length||1;
+  const maxHC=Math.max(...grps.map(g=>agents.filter(a=>a.grp===g).length),1);
+  document.getElementById('mng-total-meta').textContent=`${agents.length} HC today`;
+  document.getElementById('mng-summary-tbody').innerHTML=grps.map(grp=>{
+    const list=agents.filter(a=>a.grp===grp);
+    if(!list.length) return '';
+    const c=list.length;
+    const gc=GC[grp]||'var(--t2)';
+    return `<tr>
+      <td class="b" style="color:${gc}">${grp}</td>
+      <td class="c b mn">${c}</td>
+      <td class="c" title="${grp}: ${c} / ${denom} = ${Math.round(c/denom*100)}% of view"><span style="font-family:var(--mono);font-size:11px;color:#8b949e;border-bottom:1px dashed #484f58">${Math.round(c/denom*100)}%</span></td>
+      <td class="c" style="color:var(--g);font-family:var(--mono)">${list.filter(a=>a.status==='Working').length}</td>
+      <td class="c" style="color:var(--w);font-family:var(--mono)">${list.filter(a=>a.status==='On training').length}</td>
+      <td class="c" style="color:var(--acc);font-family:var(--mono)">${list.filter(a=>a.status==='Long-term leave').length}</td>
+      <td><div class="hbar"><div class="ht"><div class="hf" style="width:${Math.round(c/maxHC*100)}%;background:${gc}80"></div></div><div class="hn">${c}</div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// AGENT LIST TAB
+// ============================================================
+let agAll=[], agFiltered=[], agSortKey='online_date', agSortAsc=false, agPageN=0;
+const PER_PAGE=50;
+
+function renderAgents(){
+  const team  =document.getElementById('ag-team').value;
+  const queue =document.getElementById('ag-queue').value;
+  const status=document.getElementById('ag-status').value;
+
+  agAll=CS_AGENTS.filter(a=>{
+    if(team!=='ALL'&&a.team!==team) return false;
+    if(queue!=='ALL'&&(a.queue||'')!==queue) return false;
+    if(status==='ACTIVE') return HC_S.includes(a.status)||a.status==='Long-term leave';
+    if(status==='Stopped') return a.status==='Stopped';
+    if(status!=='ALL') return a.status===status;
+    return true;
+  });
+  agPageN=0;
+  agSearch();
+  refreshBatch();          // batch table follows the Team/Queue filter
+}
+
+function agSearch(){
+  const q=(document.getElementById('ag-search').value||'').toLowerCase();
+  agFiltered=agAll.filter(a=>!q||(a.name||'').toLowerCase().includes(q));
+  agSortApply();
+}
+
+function agSort(k){
+  agSortAsc = agSortKey===k ? !agSortAsc : true;
+  agSortKey=k; agPageN=0; agSortApply();
+}
+
+function agSortApply(){
+  const k=agSortKey, asc=agSortAsc;
+  agFiltered=[...agFiltered].sort((a,b)=>{
+    const av=a[k]||'', bv=b[k]||'';
+    return asc?av.localeCompare(bv):bv.localeCompare(av);
+  });
+  agRenderPage();
+}
+
+function agPage(d){ agPageN+=d; agRenderPage(); }
+
+function agRenderPage(){
+  const total=agFiltered.length;
+  const pages=Math.ceil(total/PER_PAGE)||1;
+  agPageN=Math.max(0,Math.min(agPageN,pages-1));
+  const s=agPageN*PER_PAGE, e=Math.min(s+PER_PAGE,total);
+  const slice=agFiltered.slice(s,e);
+
+  document.getElementById('ag-meta').textContent=`${total} agents`;
+  document.getElementById('ag-page-info').textContent=`${s+1}–${e} / ${total}`;
+  document.getElementById('ag-prev').disabled=agPageN===0;
+  document.getElementById('ag-next').disabled=agPageN===pages-1;
+  document.getElementById('ag-sort-info').textContent=`Sort: ${agSortKey} ${agSortAsc?'↑':'↓'}`;
+
+  document.getElementById('ag-tbody').innerHTML=slice.map((a,i)=>{
+    const ws=weeksSince(a.online_date);
+    const lwdD=pd(a.lwd);
+    const dToLWD=lwdD?days(TODAY_D,lwdD):null;
+    const lwdColor=dToLWD===null?'var(--t2)':dToLWD<0?'var(--r)':dToLWD<=14?'var(--w)':'var(--t2)';
+    const sc=SC[a.status]||'var(--t3)';
+    const queueOrPos=a.position||a.queue||'—';
+    return `<tr>
+      <td class="b">${s+i+1}. ${a.name}</td>
+      <td style="color:${TC[a.team]||'var(--t2)'}">${a.team}</td>
+      <td style="color:${QC[a.queue]||QC[a.position]||'var(--t2)'};">${queueOrPos}</td>
+      <td>${sdot(a.status)}<span style="color:${sc};font-size:10px">${a.status}</span></td>
+      <td class="mn" style="font-size:10px">${a.online_date||'—'}</td>
+      <td class="mn" style="font-size:10px;color:${lwdColor}">${a.lwd||'—'}</td>
+      <td class="r mn">${ws!==null?ws+'w':'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+
+
+// ============================================================
+// CSAT TAB
+// ============================================================
+let WEEKS = [];        // payload.WEEKS
+let WEEK_LABELS = {};  // payload.WEEK_LABELS
+let MONTHS = [];       // payload.MONTHS
+let MONTH_LABELS = {}; // payload.MONTH_LABELS
+
+function csatColor(v){
+  if(v===null||v===undefined) return 'var(--t3)';
+  if(v>=90) return 'var(--g)';
+  if(v>=85) return '#3fb95090';
+  if(v>=80) return 'var(--w)';
+  return 'var(--r)';
+}
+
+function csatPill(v){
+  if(v===null||v===undefined) return '<span style="color:var(--t3);font-family:var(--mono)">—</span>';
+  const c=csatColor(v);
+  return `<span style="font-family:var(--mono);font-weight:700;color:${c}">${v}%</span>`;
+}
+
+function renderCSAT(){
+  const view  = document.getElementById('csat-view').value;
+  const team  = document.getElementById('csat-team').value;
+  const user  = document.getElementById('csat-user').value;
+  const batch = (document.getElementById('csat-batch').value||'').trim().toUpperCase();
+
+  // Overall KPI — latest full week (W33 = 2026-08-10)
+  const latestW = CSAT_DATA.overall_week.find(r=>r.report_week===LAST_FULL_WEEK)||{};
+  const prevW   = CSAT_DATA.overall_week.find(r=>r.report_week===PREV_FULL_WEEK)||{};
+  const t7W     = CSAT_DATA.tq_month.filter(r=>r.report_month===MONTHS[0]);
+  const t8W     = CSAT_DATA.tq_month.filter(r=>r.report_month===MONTHS[MONTHS.length-1]);
+  const t7Csat  = (() => { const g=t7W.reduce((s,r)=>s+r.good,0), b=t7W.reduce((s,r)=>s+r.bad,0); return g+b>0?Math.round(g/(g+b)*1000)/10:null; })();
+  const t8Csat  = (() => { const g=t8W.reduce((s,r)=>s+r.good,0), b=t8W.reduce((s,r)=>s+r.bad,0); return g+b>0?Math.round(g/(g+b)*1000)/10:null; })();
+  const delta   = (latestW.csat && prevW.csat) ? Math.round((latestW.csat - prevW.csat)*10)/10 : null;
+
+  document.getElementById('csat-kpi').innerHTML=[
+    {l:'CSAT W33',v:latestW.csat?latestW.csat+'%':'—',s:`${latestW.good||0}G / ${latestW.bad||0}B`,c:latestW.csat>=85?'g':latestW.csat>=80?'w':'r'},
+    {l:'WoW Delta',v:delta!==null?(delta>0?'+':'')+delta+'%':'—',s:'vs W32',c:delta===null?'a':delta>=0?'g':'r'},
+    {l:'T7/2026',v:t7Csat?t7Csat+'%':'—',s:'Monthly CSAT',c:t7Csat>=85?'g':t7Csat>=80?'w':'r'},
+    {l:'T8/2026 MTD',v:t8Csat?t8Csat+'%':'—',s:'Month to date',c:t8Csat>=85?'g':t8Csat>=80?'w':'r'},
+    {l:'MoM Delta',v:(t7Csat&&t8Csat)?((t8Csat-t7Csat)>0?'+':'')+(Math.round((t8Csat-t7Csat)*10)/10)+'%':'—',s:'T8 vs T7',c:(t7Csat&&t8Csat)?(t8Csat>=t7Csat?'g':'r'):'a'},
+  ].map(k=>`<div class="kpi ${k.c}"><div class="kl">${k.l}</div><div class="kv">${k.v}</div><div class="ks">${k.s}</div></div>`).join('');
+
+  // Main table
+  if(view==='overall') renderCSATOverall();
+  else if(view==='team') renderCSATTeamWeek(team, user);
+  else if(view==='team_month') renderCSATTeamMonth(team, user);
+  else if(view==='batch') renderCSATBatch(batch);
+
+  // Trend always shown
+  renderCSATTrend();
+}
+
+function renderCSATOverall(){
+  document.getElementById('csat-table-title').textContent='Overall CSAT by Week';
+  document.getElementById('csat-thead').innerHTML=`<tr>
+    <th>Week</th><th class="c">Good</th><th class="c">Bad</th>
+    <th class="c">Cases</th><th class="c">CSAT%</th><th style="width:25%">Bar</th>
+  </tr>`;
+  const rows=CSAT_DATA.overall_week.filter(r=>r.report_week!==CUR_WEEK);
+  document.getElementById('csat-tbody').innerHTML=rows.map(r=>`<tr>
+    <td class="b mn" style="color:var(--acc)">${WEEK_LABELS[r.report_week]||r.report_week}</td>
+    <td class="c mn" style="color:var(--g)">${r.good.toLocaleString()}</td>
+    <td class="c mn" style="color:var(--r)">${r.bad.toLocaleString()}</td>
+    <td class="c mn">${r.cases.toLocaleString()}</td>
+    <td class="c">${csatPill(r.csat)}</td>
+    <td><div class="hbar"><div class="ht" style="height:6px">
+      <div class="hf" style="width:${r.csat||0}%;background:${csatColor(r.csat)}80"></div>
+    </div><div class="hn">${r.csat||0}%</div></div></td>
+  </tr>`).join('');
+  document.getElementById('csat-meta').textContent=`${rows.length} weeks`;
+}
+
+function renderCSATTeamWeek(team, user){
+  document.getElementById('csat-table-title').textContent=`CSAT by Team/Queue × Week`;
+  // Pivot: rows = team/queue, cols = weeks
+  let data = CSAT_DATA.tq_week.filter(r=>r.report_week!==CUR_WEEK);
+  if(team!=='ALL') data=data.filter(r=>r.full_team===team);
+  if(user!=='ALL') data=data.filter(r=>r.shopee_user_type===user);
+
+  const teams=[...new Set(data.map(r=>r.full_team+' '+r.shopee_user_type))].sort();
+  const weeks=WEEKS;
+
+  document.getElementById('csat-thead').innerHTML=`<tr>
+    <th>Team</th><th>User</th>
+    ${weeks.map(w=>`<th class="c">${WEEK_LABELS[w]||w}</th>`).join('')}
+    <th class="c">Avg</th>
+  </tr>`;
+
+  const tqMap={};
+  data.forEach(r=>{ tqMap[r.full_team+'|'+r.shopee_user_type+'|'+r.report_week]=r.csat; });
+
+  const allTeams=[...new Set(data.map(r=>r.full_team))].sort();
+  const allUsers=['Buyer','Seller'];
+  let rows_html='';
+  allTeams.forEach(t=>{
+    allUsers.forEach(u=>{
+      const csats=weeks.map(w=>tqMap[t+'|'+u+'|'+w]??null);
+      if(csats.every(c=>c===null)) return;
+      const valid=csats.filter(c=>c!==null);
+      const avg=valid.length?Math.round(valid.reduce((s,c)=>s+c,0)/valid.length*10)/10:null;
+      const tc=TC[{CH:{CHAT:'CHAT'},CA:{CALL:'CALL'},MT:{Multi:'MULTI'}}]||'var(--t2)';
+      rows_html+=`<tr>
+        <td class="b" style="color:${teamColor(t)}">${t}</td>
+        <td style="font-size:10px;color:${u==='Buyer'?'var(--acc)':'var(--o)'}">${u}</td>
+        ${csats.map(c=>`<td class="c">${csatPill(c)}</td>`).join('')}
+        <td class="c">${csatPill(avg)}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('csat-tbody').innerHTML=rows_html;
+  document.getElementById('csat-meta').textContent=`${allTeams.length} teams`;
+}
+
+function renderCSATTeamMonth(team, user){
+  document.getElementById('csat-table-title').textContent=`CSAT by Team/Queue × Month`;
+  let data=CSAT_DATA.tq_month;
+  if(team!=='ALL') data=data.filter(r=>r.full_team===team);
+  if(user!=='ALL') data=data.filter(r=>r.shopee_user_type===user);
+
+  document.getElementById('csat-thead').innerHTML=`<tr>
+    <th>Team</th><th>User</th>
+    ${MONTHS.map(m=>`<th class="c">${MONTH_LABELS[m]}</th>`).join('')}
+    <th class="c">Good</th><th class="c">Bad</th><th class="c">MoM</th>
+  </tr>`;
+
+  const allTeams=[...new Set(data.map(r=>r.full_team))].sort();
+  const allUsers=['Buyer','Seller'];
+  const map={};
+  data.forEach(r=>{ map[r.full_team+'|'+r.shopee_user_type+'|'+r.report_month]=r; });
+
+  let rows_html='';
+  allTeams.forEach(t=>{
+    allUsers.forEach(u=>{
+      const m7=map[t+'|'+u+'|2026-07-01'], m8=map[t+'|'+u+'|2026-08-01'];
+      if(!m7&&!m8) return;
+      const mom=(m7?.csat&&m8?.csat)?Math.round((m8.csat-m7.csat)*10)/10:null;
+      const totG=(m7?.good||0)+(m8?.good||0);
+      const totB=(m7?.bad||0)+(m8?.bad||0);
+      rows_html+=`<tr>
+        <td class="b" style="color:${teamColor(t)}">${t}</td>
+        <td style="font-size:10px;color:${u==='Buyer'?'var(--acc)':'var(--o)'}">${u}</td>
+        <td class="c">${csatPill(m7?.csat)}</td>
+        <td class="c">${csatPill(m8?.csat)}</td>
+        <td class="c mn" style="color:var(--g)">${totG.toLocaleString()}</td>
+        <td class="c mn" style="color:var(--r)">${totB.toLocaleString()}</td>
+        <td class="c">${mom===null?'—':mom>0?`<span class="dg">+${mom}%</span>`:`<span class="dr">${mom}%</span>`}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('csat-tbody').innerHTML=rows_html;
+}
+
+function renderCSATBatch(batchFilter){
+  document.getElementById('csat-table-title').textContent='CSAT by Batch × Month';
+  let data=CSAT_DATA.bat_month;
+  if(batchFilter) data=data.filter(r=>r.Batch.toUpperCase().includes(batchFilter));
+
+  document.getElementById('csat-thead').innerHTML=`<tr>
+    <th onclick="csatBatSort('Batch')" style="cursor:pointer">Batch ↕</th>
+    ${MONTHS.map(m=>`<th class="c">${MONTH_LABELS[m]}</th>`).join('')}
+    <th class="c">MoM</th><th class="c">Total Cases</th>
+  </tr>`;
+
+  const batches=[...new Set(data.map(r=>r.Batch))].sort((a,b)=>{
+    const na=parseInt(a.replace('K','')||0), nb=parseInt(b.replace('K','')||0);
+    return nb-na;
+  });
+  const map={};
+  data.forEach(r=>{ map[r.Batch+'|'+r.report_month]=r; });
+
+  let rows_html='';
+  batches.forEach(b=>{
+    const m7=map[b+'|'+MONTHS[0]], m8=map[b+'|'+MONTHS[MONTHS.length-1]];
+    if(!m7&&!m8) return;
+    const mom=(m7?.csat&&m8?.csat)?Math.round((m8.csat-m7.csat)*10)/10:null;
+    const totC=(m7?.cases||0)+(m8?.cases||0);
+    rows_html+=`<tr>
+      <td class="b mn" style="color:var(--acc)">${b}</td>
+      <td class="c">${csatPill(m7?.csat)}</td>
+      <td class="c">${csatPill(m8?.csat)}</td>
+      <td class="c">${mom===null?'—':mom>0?`<span class="dg">+${mom}%</span>`:`<span class="dr">${mom}%</span>`}</td>
+      <td class="c mn" style="color:var(--t2)">${Math.round(totC).toLocaleString()}</td>
+    </tr>`;
+  });
+  document.getElementById('csat-tbody').innerHTML=rows_html;
+  document.getElementById('csat-meta').textContent=`${batches.length} batches`;
+}
+
+function renderCSATTrend(){
+  const rows=CSAT_DATA.overall_week.filter(r=>r.report_week!==CUR_WEEK);
+  const max=Math.max(...rows.map(r=>r.csat||0));
+  document.getElementById('csat-trend-body').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${rows.map(r=>{
+        const w=Math.round((r.csat||0)/max*100);
+        const c=csatColor(r.csat);
+        return `<div style="display:flex;align-items:center;gap:10px">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--acc);width:32px">${WEEK_LABELS[r.report_week]||''}</div>
+          <div style="flex:1;height:20px;background:var(--s2);border-radius:4px;overflow:hidden;position:relative">
+            <div style="width:${w}%;height:100%;background:${c}50;border-radius:4px"></div>
+            <div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;font-family:var(--mono);color:${c};font-weight:700">${r.csat||0}%</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t2);min-width:80px;text-align:right">${r.good.toLocaleString()}G / ${r.bad.toLocaleString()}B</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function teamColor(t){
+  const map={'CH.B':'#4493f8','CH.S':'#a371f7','CH.LOG':'#3fb950',
+             'CA.B':'#f0883e','CA.S':'#d29922','MT':'#ec4899',
+             'CH.Sen':'#4493f850','CA.Sen':'#f0883e50','MT.Sen':'#ec489950'};
+  return map[t]||'var(--t1)';
+}
+
+
+
+// ============================================================
+// HC × CSAT TAB
+// ============================================================
+const HC_GROUPS = ['Pending','Long Leave','LWD ≤1W','LWD 1–2W','LWD 2–4W','LWD 1–2M'];
+const HC_COLORS = {
+  'Pending':    '#4493f8','Long Leave': '#a371f7',
+  'LWD ≤1W':  '#f85149','LWD 1–2W':  '#f0883e',
+  'LWD 2–4W': '#d29922','LWD 1–2M':  '#3fb950',
+};
+let WEEKS7 = [];   // payload.WEEKS
+let WL7    = {};   // payload.WEEK_LABELS
+let MONTHS2 = [];  // payload.MONTHS
+let ML2     = {};  // payload.MONTH_LABELS
+
+function hcCsatColor(v){
+  if(v===null||v===undefined) return 'var(--t3)';
+  if(v>=88) return '#3fb950'; if(v>=85) return '#d29922';
+  if(v>=80) return '#f0883e'; return '#f85149';
+}
+function hcCsatPill(v,ref){
+  if(v===null||v===undefined) return '<span style="color:var(--t3);font-family:var(--mono)">—</span>';
+  const c=hcCsatColor(v);
+  const delta=(ref!==undefined&&ref!==null)?(v-ref):null;
+  const ds=delta!==null?` <span style="font-size:9px;color:${delta>=0?'#3fb950':'#f85149'}">${delta>=0?'+':''}${Math.round(delta*10)/10}</span>`:'';
+  return `<span style="font-family:var(--mono);font-weight:700;color:${c}">${v}%</span>${ds}`;
+}
+
+function pctOf(g,b){ return (g+b)?Math.round(g/(g+b)*1000)/10:0; }
+
+// Rebuild the HC×CSAT dataset for a single team from grp_agents (which carries team).
+function buildTeamView(team){
+  const src=HC_CSAT, ga={}, gw=[], gm=[];
+  HC_GROUPS.forEach(g=>{
+    ga[g]=(src.grp_agents[g]||[]).filter(a=>a.team===team);
+    const byW={}, byM={};
+    ga[g].forEach(a=>(a.weekly||[]).forEach(x=>{
+      const m=x.week.slice(0,7)+'-01';
+      (byW[x.week]=byW[x.week]||{good:0,bad:0,ag:{}}); byW[x.week].good+=x.good; byW[x.week].bad+=x.bad; byW[x.week].ag[a.name]=1;
+      (byM[m]=byM[m]||{good:0,bad:0,ag:{}});        byM[m].good+=x.good;     byM[m].bad+=x.bad;     byM[m].ag[a.name]=1;
+    }));
+    Object.keys(byW).forEach(w=>{const o=byW[w];gw.push({hc_group:g,report_week:w,good:o.good,bad:o.bad,cases:o.good+o.bad,agents:Object.keys(o.ag).length,csat:pctOf(o.good,o.bad)});});
+    Object.keys(byM).forEach(m=>{const o=byM[m];gm.push({hc_group:g,report_month:m,good:o.good,bad:o.bad,cases:o.good+o.bad,agents:Object.keys(o.ag).length,csat:pctOf(o.good,o.bad)});});
+  });
+  const ow={};
+  CSAT_DATA.tq_week.forEach(r=>{ if(teamOfFull(r.full_team)!==team) return;
+    (ow[r.report_week]=ow[r.report_week]||{good:0,bad:0,cases:0}); ow[r.report_week].good+=r.good; ow[r.report_week].bad+=r.bad; ow[r.report_week].cases+=r.cases; });
+  const overall_week=Object.keys(ow).sort().map(w=>({report_week:w,good:ow[w].good,bad:ow[w].bad,cases:ow[w].cases,csat:pctOf(ow[w].good,ow[w].bad)}));
+  return {grp_agents:ga, grp_week:gw, grp_month:gm, overall_week:overall_week};
+}
+
+function renderHCCSAT(){
+  const grpEl=document.getElementById('hc-csat-grp');
+  const grpF=grpEl?grpEl.value:'ALL';
+  const teamEl=document.getElementById('hc-csat-team');
+  const teamF=teamEl?teamEl.value:'ALL';
+  HC_VIEW = (teamF==='ALL') ? HC_CSAT : buildTeamView(teamF);
+  renderHCCSATCards(grpF);
+  renderHCCSATInsight();
+  renderHCCSATTrend(grpF);
+  const view=document.getElementById('hc-csat-view').value;
+  if(view==='week')  renderHCCSATWeekTable(grpF);
+  else if(view==='month') renderHCCSATMonthTable(grpF);
+  else renderHCCSATAgent(grpF);
+  renderCsatHc();
+}
+
+// ── CSAT × HC by Team / Queue ──────────────────────────────
+function teamOfFull(ft){
+  if(ft.indexOf('CA')===0) return 'CALL';
+  if(ft.indexOf('CH')===0) return 'CHAT';
+  if(ft.indexOf('MT')===0) return 'MULTI';
+  return 'Other';   // DP, ...
+}
+function queueOfFull(ft){
+  if(/\.B$/.test(ft))   return 'Buyer';
+  if(/\.S$/.test(ft))   return 'Seller';
+  if(/\.LOG$/.test(ft)) return 'Log';
+  return 'All';       // MT, *.Sen
+}
+function renderCsatHc(){
+  const dimEl=document.getElementById('csat-hc-dim'); if(!dimEl) return;
+  const dim=dimEl.value;
+  const csActive=CS_AGENTS.filter(a=>a.is_hc);
+  const mngActive=MNG_AGENTS.filter(a=>a.is_hc);
+  const totalHc=csActive.length+mngActive.length;
+
+  let entities, volOf, denom, entOfFull;
+  if(dim==='overall'){
+    entities=['Overall']; denom=totalHc;
+    volOf=()=>totalHc; entOfFull=()=>'Overall';
+  } else if(dim==='team'){
+    const present=[...new Set(csActive.map(a=>a.team))];
+    entities=['CALL','CHAT','MULTI','EMAIL'].filter(t=>present.includes(t));
+    if(mngActive.length) entities.push('MNG');
+    denom=totalHc;
+    volOf=e=> e==='MNG'?mngActive.length:csActive.filter(a=>a.team===e).length;
+    entOfFull=ft=>teamOfFull(ft);
+  } else {
+    const present=[...new Set(csActive.map(a=>a.queue))];
+    entities=['Buyer','Seller','Log','All'].filter(q=>present.includes(q));
+    denom=csActive.length;
+    volOf=e=>csActive.filter(a=>a.queue===e).length;
+    entOfFull=ft=>queueOfFull(ft);
+  }
+
+  // CSAT per entity per week
+  const acc={};
+  CSAT_DATA.tq_week.forEach(r=>{
+    const ent = dim==='overall' ? 'Overall' : entOfFull(r.full_team);
+    if(entities.indexOf(ent)<0) return;
+    const k=ent+'|'+r.report_week;
+    if(!acc[k]) acc[k]={good:0,bad:0};
+    acc[k].good+=r.good; acc[k].bad+=r.bad;
+  });
+  const pc=(g,b)=> (g+b)? Math.round(g/(g+b)*1000)/10 : null;
+
+  const label = dim==='overall'?'Overall':dim==='team'?'Team':'Queue';
+  document.getElementById('csathc-thead').innerHTML=`<tr>
+    <th>${label}</th><th class="c">Volume</th><th class="c">% HC</th>
+    ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
+  </tr>`;
+  document.getElementById('csathc-tbody').innerHTML=entities.map(e=>{
+    const vol=volOf(e);
+    const share=denom?Math.round(vol/denom*1000)/10:0;
+    const color = dim==='team' ? (TC[e]||'var(--t1)') : 'var(--t1)';
+    return `<tr>
+      <td class="b" style="color:${color}">${e}</td>
+      <td class="c mn">${vol}</td>
+      <td class="c mn" style="color:var(--t2)">${share}%</td>
+      ${WEEKS7.map(w=>{const o=acc[e+'|'+w];const v=o?pc(o.good,o.bad):null;
+        return v!==null?`<td class="c">${hcCsatPill(v,null)}</td>`
+                       :'<td class="c" style="color:var(--t3)">—</td>';}).join('')}
+    </tr>`;
+  }).join('');
+}
+
+// ── BY AGENT ───────────────────────────────────────────────
+function renderHCCSATAgent(grpF){
+  document.getElementById('hccsat-tbl-title').textContent='CSAT by Agent (đang rời)';
+  document.getElementById('hccsat-thead').innerHTML=`<tr>
+    <th>Agent</th><th>Group</th><th class="c">Overall</th>
+    ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
+  </tr>`;
+  const overall={}; HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  const groups=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
+  let rows='', n=0;
+  groups.forEach(g=>{
+    (HC_VIEW.grp_agents[g]||[]).forEach(a=>{
+      n++;
+      const wmap={}; (a.weekly||[]).forEach(x=>{wmap[x.week]=x;});
+      rows+=`<tr>
+        <td class="b" style="cursor:pointer" onclick="openGroupModal('${g}')">
+          <div style="font-size:11px">${a.name}</div>
+          <div style="font-size:9px;color:var(--t3)">${a.team} · ${a.queue||'—'} · ${a.status}</div></td>
+        <td style="font-size:10px;color:${HC_COLORS[g]}">${g}</td>
+        <td class="c">${a.csat_overall!==null?hcCsatPill(a.csat_overall,null):'<span style="color:var(--t3)">—</span>'}</td>
+        ${WEEKS7.map(w=>{const x=wmap[w];return x?`<td class="c" title="${x.good}G/${x.bad}B">${hcCsatPill(x.csat,overall[w])}</td>`:'<td class="c" style="color:var(--t3)">—</td>';}).join('')}
+      </tr>`;
+    });
+  });
+  document.getElementById('hccsat-tbody').innerHTML=rows||`<tr><td colspan="${3+WEEKS7.length}" style="color:var(--t3);padding:12px">Không có agent trong nhóm đang rời</td></tr>`;
+  document.getElementById('hccsat-tbl-meta').textContent=`${n} agents`;
+}
+
+// ── CARDS ──────────────────────────────────────────────────
+function renderHCCSATCards(grpF){
+  const overall=HC_VIEW.overall_week;
+  const latestOverall=overall.find(r=>r.report_week===LAST_FULL_WEEK)||{};
+
+  const grpMap={};
+  HC_VIEW.grp_week.forEach(r=>{
+    if(!grpMap[r.hc_group]||r.report_week>grpMap[r.hc_group].report_week)
+      grpMap[r.hc_group]=r;
+  });
+
+  const showGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
+  document.getElementById('hccsat-cards').innerHTML=showGrps.map(g=>{
+    const r=grpMap[g];
+    const agents=HC_VIEW.grp_agents[g]||[];
+    const csat=r?r.csat:null;
+    const diff=(csat&&latestOverall.csat)?Math.round((csat-latestOverall.csat)*10)/10:null;
+    const c=HC_COLORS[g];
+    const csatColor=hcCsatColor(csat);
+    const withData=agents.filter(a=>a.weekly&&a.weekly.length>0).length;
+    return `<div onclick="openGroupModal('${g}')" style="
+      background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:14px 16px;
+      cursor:pointer;transition:border-color .15s;position:relative;overflow:hidden;
+      border-left:3px solid ${c}"
+      onmouseover="this.style.borderColor='${c}'" onmouseout="this.style.borderColor='var(--b1)'">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+        color:${c};margin-bottom:8px">${g}</div>
+      <div style="font-size:30px;font-weight:700;font-family:var(--mono);color:${csatColor};line-height:1">
+        ${csat!==null?csat+'%':'—'}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center">
+        <div style="font-size:10px;color:var(--t2)">
+          ${diff!==null?`<span style="color:${diff>=0?'#3fb950':'#f85149'};font-family:var(--mono);font-weight:600">${diff>=0?'+':''}${diff}%</span> vs Overall`:''}</div>
+        <div style="font-size:10px;color:var(--t3);font-family:var(--mono)">
+          ${agents.length} agents${withData<agents.length?` · ${withData} có data`:''}</div>
+      </div>
+      <div style="font-size:9px;color:${c}60;margin-top:6px;letter-spacing:.06em">
+        Click để xem chi tiết →</div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ──────────────────────────────────────────────────
+function openGroupModal(grp){
+  const agents=HC_VIEW.grp_agents[grp]||[];
+  const c=HC_COLORS[grp];
+  document.getElementById('modal-title').textContent=grp;
+  document.getElementById('modal-title').style.color=c;
+  document.getElementById('modal-sub').textContent=
+    `${agents.length} agents · Click agent để xem weekly trend`;
+
+  const overall={};
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+
+  let body=`<div style="display:flex;flex-direction:column;gap:10px">`;
+  agents.forEach(a=>{
+    const csatC=hcCsatColor(a.csat_overall);
+    const hasData=a.weekly&&a.weekly.length>0;
+
+    // Trend bars — larger, readable
+    let trendHtml='';
+    if(hasData){
+      trendHtml=`<div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        ${WEEKS7.map(w=>{
+          const wd=a.weekly.find(x=>x.week===w);
+          const v=wd?wd.csat:null;
+          const ov=overall[w];
+          const barC=v?hcCsatColor(v):'var(--b1)';
+          const belowBaseline=v&&ov&&v<ov;
+          const barW=v?Math.max(v,1):0;
+          return `<div style="display:flex;align-items:center;gap:8px">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--acc);
+              width:28px;flex-shrink:0;text-align:right">${WL7[w]}</div>
+            <div style="flex:1;height:26px;background:var(--bg);border-radius:4px;
+              overflow:hidden;position:relative">
+              ${ov?`<div style="position:absolute;left:0;top:0;bottom:0;width:${ov}%;
+                background:#ffffff08;border-right:1px dashed #ffffff15"></div>`:''}
+              ${v?`<div style="position:absolute;left:0;top:0;bottom:0;width:${barW}%;
+                background:${barC}${belowBaseline?'':'90'};border-radius:4px;
+                ${belowBaseline?'box-shadow:inset 0 0 0 2px #f85149':''}"></div>`:''}
+              <div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);
+                font-family:var(--mono);font-size:12px;font-weight:700;color:#fff">
+                ${v?v+'%':'—'}</div>
+              ${ov&&v?`<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);
+                font-family:var(--mono);font-size:10px;color:${belowBaseline?'#f85149':'#ffffff60'}">
+                ${belowBaseline?'▼ ':''}${ov?'baseline '+ov+'%':''}</div>`:''}
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--t2);
+              min-width:70px;flex-shrink:0">
+              ${wd?wd.good+'G / '+wd.bad+'B':'—'}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    body+=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:7px;
+      padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--t1)">${a.name}</div>
+          <div style="font-size:10px;color:var(--t2);margin-top:2px">
+            ${a.team} · ${a.queue||'—'} ·
+            <span style="color:${a.status==='Stopped'?'var(--r)':a.status==='Pending'?'var(--acc)':'var(--t3)'}">
+              ${a.status}</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:700;font-family:var(--mono);color:${csatC}">
+            ${a.csat_overall!==null?a.csat_overall+'%':'—'}</div>
+          <div style="font-size:10px;color:var(--t2)">
+            ${a.good_total}G / ${a.bad_total}B</div>
+          ${a.lwd?`<div style="font-size:10px;font-family:var(--mono);color:var(--r);margin-top:2px">
+            LWD: ${a.lwd}</div>`:''}
+          ${a.ll_end?`<div style="font-size:10px;font-family:var(--mono);color:var(--acc);margin-top:2px">
+            Return: ${a.ll_end}</div>`:''}
+        </div>
+      </div>
+      ${trendHtml}
+      ${!hasData?`<div style="font-size:10px;color:var(--t3);margin-top:6px">Chưa có CSAT data trong kỳ</div>`:''}
+    </div>`;
+  });
+  body+='</div>';
+
+  document.getElementById('modal-body').innerHTML=body;
+  setModalBack(null,null);
+  document.getElementById('agent-modal').style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('agent-modal')&&e.type==='click') return;
+  document.getElementById('agent-modal').style.display='none';
+  document.body.style.overflow='';
+}
+
+function showModal(){ document.getElementById('agent-modal').style.display='block'; document.body.style.overflow='hidden'; }
+
+// Set/clear the modal's Back button.
+function setModalBack(label, fn){
+  const b=document.getElementById('modal-back');
+  if(fn){ b.style.display=''; b.textContent=label; b.onclick=fn; }
+  else { b.style.display='none'; b.onclick=null; }
+}
+
+// Detail of one batch: online date(s) + CALL/CHAT × Buyer/Seller/Log/All counts + agent list.
+function openBatchModal(batch, fromMonth, fromView){
+  const list=CS_AGENTS.filter(a=>a.batch===batch);
+  if(!list.length) return;
+  const dates=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort();
+  const dateStr=dates.length?(dates.length===1?dates[0]:dates[0]+' → '+dates[dates.length-1]):'—';
+  document.getElementById('modal-title').textContent='Batch '+batch;
+  document.getElementById('modal-title').style.color='var(--acc)';
+  document.getElementById('modal-sub').textContent=`${list.length} người · Online date: ${dateStr}`;
+  const queues=['Buyer','Seller','Log','All'];
+  const teams=['CALL','CHAT','MULTI','EMAIL'].filter(t=>list.some(a=>a.team===t));
+  const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
+  const rows=teams.map(t=>{
+    const tot=list.filter(a=>a.team===t).length;
+    return `<tr><td class="b" style="color:${TC[t]||'var(--t1)'}">${t}</td>${queues.map(q=>{
+      const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
+    }).join('')}<td class="c b mn">${tot}</td></tr>`;
+  }).join('');
+  const st={}; list.forEach(a=>st[a.status]=(st[a.status]||0)+1);
+  const stStr=Object.keys(st).map(s=>`${s}: ${st[s]}`).join(' · ');
+  const agentRows=list.slice().sort((a,b)=>(a.team+a.queue).localeCompare(b.team+b.queue)).map(a=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid var(--b1);font-size:11px">
+      <div>${a.name} <span style="color:var(--t3);font-size:10px">${a.online_date||''}</span></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t2)">${a.team}·${a.queue||'—'} ${sdot(a.status)}</div>
+    </div>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--t2)">Trạng thái: ${stStr}</div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length})</div>
+    <div style="margin-top:4px">${agentRows}</div>`;
+  if(fromMonth){ const ml='T'+(+fromMonth.slice(5,7))+'/'+fromMonth.slice(0,4); setModalBack('← Batch '+ml, ()=>openMonthBatches(fromMonth, fromView)); }
+  else setModalBack(null,null);
+  showModal();
+}
+
+// Batches of a given month (CALL/CHAT newbies) as clickable rows -> openBatchModal.
+function openMonthBatches(month, view){
+  view=view||'new';
+  const set=newbieSetFor(month, view).filter(a=>a.batch);
+  const batches=[...new Set(set.map(a=>a.batch))].sort((x,y)=>(parseInt(y.replace(/\D/g,''))||0)-(parseInt(x.replace(/\D/g,''))||0));
+  const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
+  document.getElementById('modal-title').textContent=(view==='total'?'Batch (CS 0–2 tháng) ':'Batch tháng ')+mlabel;
+  document.getElementById('modal-title').style.color='var(--acc)';
+  document.getElementById('modal-sub').textContent=`${batches.length} batch · click để xem chi tiết`;
+  document.getElementById('modal-body').innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
+    ${batches.map(b=>{
+      const list=CS_AGENTS.filter(a=>a.batch===b);
+      const d=[...new Set(list.map(a=>a.online_date).filter(Boolean))].sort()[0]||'';
+      const call=list.filter(a=>a.team==='CALL').length, chat=list.filter(a=>a.team==='CHAT').length;
+      return `<div onclick="openBatchModal('${b}','${month}','${view}')" style="cursor:pointer;background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center"
+        onmouseover="this.style.borderColor='var(--acc)'" onmouseout="this.style.borderColor='var(--b1)'">
+        <div><b style="color:var(--acc);font-family:var(--mono)">${b}</b> <span style="color:var(--t3);font-size:10px">${d}</span></div>
+        <div style="font-size:11px;font-family:var(--mono)"><span style="color:#3fb950">CALL ${call}</span> · <span style="color:#4493f8">CHAT ${chat}</span></div>
+      </div>`;
+    }).join('')}</div>`;
+  setModalBack(null,null);
+  showModal();
+}
+
+// ── INSIGHT ────────────────────────────────────────────────
+function renderHCCSATInsight(){
+  const insights=[];
+  const overall={};
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+
+  HC_GROUPS.forEach(g=>{
+    const rows=HC_VIEW.grp_week.filter(r=>r.hc_group===g)
+      .sort((a,b)=>a.report_week.localeCompare(b.report_week));
+    if(rows.length<2) return;
+    const first=rows[0], last=rows[rows.length-1];
+    if(first.csat&&last.csat){
+      const diff=Math.round((last.csat-first.csat)*10)/10;
+      if(Math.abs(diff)>=2){
+        const ov_last=overall[last.report_week];
+        const vs_baseline=ov_last?Math.round((last.csat-ov_last)*10)/10:null;
+        insights.push(
+          `<b style="color:${HC_COLORS[g]}">${g}</b>: ` +
+          `${diff<0?'▼ Drop':'▲ Tăng'} <b>${Math.abs(diff)}%</b> ` +
+          `(${first.csat}% → ${last.csat}%)` +
+          (vs_baseline!==null?` · vs baseline ${vs_baseline>=0?'+':''}${vs_baseline}%`:'')
+        );
+      }
+    }
+    // Check if CSAT consistently below overall baseline
+    const belowCount=rows.filter(r=>r.csat&&overall[r.report_week]&&r.csat<overall[r.report_week]).length;
+    if(belowCount>=3&&!insights.find(i=>i.includes(g))){
+      insights.push(`<b style="color:${HC_COLORS[g]}">${g}</b>: CSAT dưới baseline ${belowCount}/${rows.length} tuần`);
+    }
+  });
+
+  const box=document.getElementById('hccsat-insight');
+  if(insights.length){
+    box.style.display='block';
+    box.innerHTML=`<b style="color:var(--acc);font-size:10px;letter-spacing:.08em">PATTERN DETECTED</b><br>${insights.join('<br>')}`;
+  } else {
+    box.style.display='none';
+  }
+}
+
+// ── TREND ──────────────────────────────────────────────────
+function renderHCCSATTrend(grpF){
+  const overall={};
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  const grpMap={};
+  HC_VIEW.grp_week.forEach(r=>{
+    if(!grpMap[r.hc_group]) grpMap[r.hc_group]={};
+    grpMap[r.hc_group][r.report_week]=r.csat;
+  });
+
+  const trendHtml=WEEKS7.map(w=>{
+    const ov=overall[w];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #1c2128">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--acc);width:32px;flex-shrink:0">${WL7[w]}</div>
+      <div style="flex:1;position:relative;height:20px;background:var(--s2);border-radius:4px">
+        ${ov?`<div style="position:absolute;left:0;top:0;height:100%;width:${ov}%;
+          background:#48495030;border-radius:4px" title="Overall: ${ov}%"></div>`:''}
+        ${HC_GROUPS.map(g=>{
+          const v=grpMap[g]?grpMap[g][w]:null;
+          if(!v) return '';
+          return `<div style="position:absolute;top:50%;transform:translateY(-50%);
+            left:calc(${v}% - 1px);width:2px;height:14px;
+            background:${HC_COLORS[g]};border-radius:1px" title="${g}: ${v}%"></div>`;
+        }).join('')}
+        ${ov?`<div style="position:absolute;left:4px;top:50%;transform:translateY(-50%);
+          font-size:9px;font-family:var(--mono);color:var(--t3)">${ov}%</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${HC_GROUPS.map(g=>{
+          const v=grpMap[g]?grpMap[g][w]:null;
+          return `<span style="font-family:var(--mono);font-size:9px;
+            color:${v?HC_COLORS[g]:'var(--t3)'};min-width:34px;text-align:right">${v?v+'%':'—'}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  const legend=HC_GROUPS.map(g=>`
+    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px">
+      <span style="width:8px;height:8px;border-radius:50%;background:${HC_COLORS[g]};display:inline-block"></span>
+      <span style="font-size:9px;color:${HC_COLORS[g]}">${g}</span>
+    </span>`).join('');
+
+  document.getElementById('hccsat-trend').innerHTML=
+    `<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">${legend}
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="width:8px;height:8px;border-radius:2px;background:#48495050;display:inline-block"></span>
+        <span style="font-size:9px;color:var(--t3)">Overall</span>
+      </span></div>
+    ${trendHtml}`;
+}
+
+// ── WEEK TABLE ─────────────────────────────────────────────
+function renderHCCSATWeekTable(grpF){
+  document.getElementById('hccsat-tbl-title').textContent='CSAT by Group × Week';
+  document.getElementById('hccsat-thead').innerHTML=`<tr>
+    <th>Group</th><th class="c">Agents</th>
+    ${WEEKS7.map(w=>`<th class="c">${WL7[w]}</th>`).join('')}
+  </tr>`;
+  const map={};
+  HC_VIEW.grp_week.forEach(r=>{map[r.hc_group+'|'+r.report_week]=r;});
+  const overall={};
+  HC_VIEW.overall_week.forEach(r=>{overall[r.report_week]=r.csat;});
+  const weekGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
+  document.getElementById('hccsat-tbody').innerHTML=weekGrps.map(g=>{
+    const agents=(HC_VIEW.grp_agents[g]||[]).length;
+    return `<tr>
+      <td class="b" style="color:${HC_COLORS[g]};cursor:pointer" onclick="openGroupModal('${g}')">${g} ↗</td>
+      <td class="c mn" style="color:var(--t2)">${agents}</td>
+      ${WEEKS7.map(w=>{
+        const r=map[g+'|'+w];
+        return r?`<td class="c" title="${r.good}G/${r.bad}B">${hcCsatPill(r.csat,overall[w])}</td>`
+                :'<td class="c" style="color:var(--t3)">—</td>';
+      }).join('')}
+    </tr>`;
+  }).join('');
+  document.getElementById('hccsat-tbl-meta').textContent=`delta vs Overall baseline`;
+}
+
+// ── MONTH TABLE ────────────────────────────────────────────
+function renderHCCSATMonthTable(grpF){
+  document.getElementById('hccsat-tbl-title').textContent='CSAT by Group × Month';
+  document.getElementById('hccsat-thead').innerHTML=`<tr>
+    <th>Group</th><th class="c">Agents</th>
+    ${MONTHS2.map(m=>`<th class="c">${ML2[m]}</th>`).join('')}
+    <th class="c">MoM</th><th class="c">Good</th><th class="c">Bad</th>
+  </tr>`;
+  const map={};
+  HC_VIEW.grp_month.forEach(r=>{map[r.hc_group+'|'+r.report_month]=r;});
+  const monthGrps=(!grpF||grpF==='ALL')?HC_GROUPS:[grpF];
+  document.getElementById('hccsat-tbody').innerHTML=monthGrps.map(g=>{
+    const m7=map[g+'|2026-07-01'], m8=map[g+'|2026-08-01'];
+    if(!m7&&!m8) return '';
+    const mom=(m7?.csat&&m8?.csat)?Math.round((m8.csat-m7.csat)*10)/10:null;
+    const agents=(HC_VIEW.grp_agents[g]||[]).length;
+    return `<tr>
+      <td class="b" style="color:${HC_COLORS[g]};cursor:pointer" onclick="openGroupModal('${g}')">${g} ↗</td>
+      <td class="c mn" style="color:var(--t2)">${agents}</td>
+      <td class="c">${hcCsatPill(m7?.csat)}</td>
+      <td class="c">${hcCsatPill(m8?.csat)}</td>
+      <td class="c">${mom===null?'—':mom>0?`<span class="dg mn">+${mom}%</span>`:`<span class="dr mn">${mom}%</span>`}</td>
+      <td class="c mn" style="color:var(--g)">${((m7?.good||0)+(m8?.good||0)).toLocaleString()}</td>
+      <td class="c mn" style="color:var(--r)">${((m7?.bad||0)+(m8?.bad||0)).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('hccsat-tbl-meta').textContent=`T7 vs T8`;
+}
+
+// ============================================================
+// BATCH TABLE
+// ============================================================
+let batAll=[], batFiltered=[], batSortKey='batch_num', batSortAsc=false, batPageN=0;
+const BAT_PER_PAGE=30;
+let batFilterMode='all';
+
+const NEWBIE_MAX_DAYS=62;   // "newbie" = tenure ≤ 2 months (LWD − online date)
+// A CALL/CHAT agent who has ALREADY stopped (LWD ≤ today) while still a newbie (≤2 months).
+function isNewbieStop(a){
+  if(!(a.team==='CALL'||a.team==='CHAT')) return false;
+  if(a.status!=='Stopped'||!a.lwd||!a.online_date) return false;
+  if(pd(a.lwd)>TODAY_D) return false;                  // chỉ tính đã nghỉ thật (không tính LWD tương lai)
+  const ten=days(pd(a.online_date),pd(a.lwd));
+  return ten>=0&&ten<=NEWBIE_MAX_DAYS;
+}
+function nbStart(m){ return new Date(+m.slice(0,4), +m.slice(5,7)-1, 1); }
+function nbEnd(m){ return new Date(+m.slice(0,4), +m.slice(5,7), 0); }
+// Agents in the Newbie view for a month.
+//   'new'   = joined that month (online_date month === m)
+//   'total' = tenure 0–2 months as of month m AND still present that month
+function newbieSetFor(month, view){
+  const cc=CS_AGENTS.filter(a=>a.online_date&&(a.team==='CALL'||a.team==='CHAT'));
+  if(view==='total'){
+    const start=nbStart(month), end=nbEnd(month);
+    const cutoff=new Date(start.getFullYear(), start.getMonth()-2, 1);  // first day of month m-2
+    return cc.filter(a=>{
+      const od=new Date(a.online_date);
+      if(od>end || od<cutoff) return false;              // tenure 0–2 months as of month m
+      const lwd=a.lwd?new Date(a.lwd):null;
+      if(lwd && lwd<start) return false;                 // already left before month m
+      return true;
+    });
+  }
+  return cc.filter(a=>a.online_date.slice(0,7)===month);
+}
+
+// CS who stopped in a month (by LWD) — Team×Queue matrix + name/LWD/reason list.
+function openMonthStops(month, view){
+  view=view||'new';
+  const list=CS_AGENTS.filter(a=>{
+    if(!isNewbieStop(a) || a.lwd.slice(0,7)!==month) return false;
+    if(view==='new' && a.online_date.slice(0,7)!==month) return false;   // New: vào & nghỉ cùng tháng
+    return true;
+  });
+  const mlabel='T'+(+month.slice(5,7))+'/'+month.slice(0,4);
+  document.getElementById('modal-title').textContent=view==='new' ? ('Newbie vào & nghỉ trong '+mlabel) : ('Newbie nghỉ trong '+mlabel);
+  document.getElementById('modal-title').style.color='#f85149';
+  document.getElementById('modal-sub').textContent=view==='new'
+    ? `${list.length} newbie vào & nghỉ ngay trong tháng (≤2 tháng)`
+    : `${list.length} newbie nghỉ trong tháng — theo LWD (≤2 tháng)`;
+  const queues=['Buyer','Seller','Log','All'];
+  const teams=['CALL','CHAT'].filter(t=>list.some(a=>a.team===t));
+  const head=`<tr><th>Team</th>${queues.map(q=>`<th class="c">${q}</th>`).join('')}<th class="c">Tổng</th></tr>`;
+  const mrows=teams.map(t=>{
+    const tot=list.filter(a=>a.team===t).length;
+    return `<tr><td class="b" style="color:${TC[t]||'var(--t1)'}">${t}</td>${queues.map(q=>{
+      const v=list.filter(a=>a.team===t&&(a.queue||'')===q).length; return `<td class="c mn">${v||'—'}</td>`;
+    }).join('')}<td class="c b mn">${tot}</td></tr>`;
+  }).join('');
+  const arows=list.slice().sort((a,b)=>(a.lwd||'').localeCompare(b.lwd||'')).map(a=>{
+    const dd=(a.online_date&&a.lwd)?days(pd(a.online_date),pd(a.lwd)):null;
+    const tenure=dd!==null?`${dd} ngày${dd>=30?` (~${Math.round(dd/30)} tháng)`:''}`:'—';
+    return `
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px solid var(--b1);font-size:11px">
+      <div style="min-width:0"><div style="font-weight:600">${a.name}</div>
+        <div style="color:var(--t3);font-size:10px">${a.team}·${a.queue||'—'} · làm <b style="color:var(--w)">${tenure}</b></div></div>
+      <div style="text-align:right;flex-shrink:0;max-width:58%">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Online ${a.online_date||'—'}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:#f85149">LWD ${a.lwd||'—'}</div>
+        <div style="font-size:10px;color:var(--t2)">${a.reason||'—'}</div></div>
+    </div>`;}).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="pb" style="padding:0"><table><thead>${head}</thead><tbody>${mrows}</tbody></table></div>
+    <div style="margin-top:12px;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Danh sách (${list.length}) — tên · LWD · lý do nghỉ</div>
+    <div style="margin-top:4px">${arows||'<div style="color:var(--t3);font-size:11px">—</div>'}</div>`;
+  setModalBack(null,null);
+  showModal();
+}
+
+// Newbie per month — view = 'new' (joined that month) or 'total' (CS 0–2 months tenure).
+function renderNewbie(){
+  const vsel=document.getElementById('nb-view');
+  const view=vsel?vsel.value:'new';
+  const cc=CS_AGENTS.filter(a=>a.online_date&&(a.team==='CALL'||a.team==='CHAT'));
+  const monthsSet={}; cc.forEach(a=>monthsSet[a.online_date.slice(0,7)]=1);
+  const asc=Object.keys(monthsSet).sort();
+  if(!asc.length){ document.getElementById('nb-tbody').innerHTML=''; return; }
+  // Newbie stops by month (LWD in that month). New view also requires joining that month.
+  const stopBy={};
+  CS_AGENTS.forEach(a=>{ if(!isNewbieStop(a)) return;
+    const lm=a.lwd.slice(0,7);
+    if(view==='new' && a.online_date.slice(0,7)!==lm) return;   // New: vào & nghỉ cùng tháng
+    stopBy[lm]=(stopBy[lm]||0)+1;
+  });
+  const met={};
+  asc.forEach(m=>{ const s=newbieSetFor(m,view); met[m]={
+    total:s.length, CALL:s.filter(a=>a.team==='CALL').length, CHAT:s.filter(a=>a.team==='CHAT').length,
+    Buyer:s.filter(a=>a.queue==='Buyer').length, Seller:s.filter(a=>a.queue==='Seller').length,
+    nBatch:new Set(s.map(a=>a.batch).filter(Boolean)).size }; });
+  const show=asc.slice(-12);
+  const maxT=Math.max(...show.map(m=>met[m].total),1);
+  const col=document.getElementById('nb-col-total'); if(col) col.textContent=view==='total'?'Total':'New';
+  document.getElementById('nb-meta').textContent=`${show.length} tháng · ${view==='total'?'CS 0–2 tháng (tại thời điểm)':'mới vào trong tháng'}`;
+  document.getElementById('nb-tbody').innerHTML=show.slice().reverse().map(m=>{
+    const o=met[m], i=asc.indexOf(m);
+    const delta=i>0?o.total-met[asc[i-1]].total:null;
+    const stop=stopBy[m]||0;
+    const mlabel='T'+(+m.slice(5,7))+'/'+m.slice(0,4);
+    const barW=Math.round(o.total/maxT*100);
+    return `<tr>
+      <td class="b mn" style="color:var(--acc)">${mlabel}</td>
+      <td class="c b mn">${o.total}</td>
+      <td class="c mn" style="color:#4493f8">${o.Buyer||'—'}</td>
+      <td class="c mn" style="color:#f0883e">${o.Seller||'—'}</td>
+      <td class="c mn">${delta===null?'<span class="dn">—</span>':delta>0?`<span class="dg">+${delta}</span>`:delta<0?`<span class="dr">${delta}</span>`:'<span class="dn">0</span>'}</td>
+      <td class="c mn" style="color:#3fb950">${o.CALL||'—'}</td>
+      <td class="c mn" style="color:#4493f8">${o.CHAT||'—'}</td>
+      <td class="c mn" title="Newbie (≤2 tháng) nghỉ — bấm xem" onclick="openMonthStops('${m}','${view}')">${stop?`<span style="border-bottom:1px dashed #f85149;color:#f85149;cursor:pointer">${stop}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td class="c mn" title="Bấm để xem chi tiết batch" onclick="openMonthBatches('${m}','${view}')"><span style="border-bottom:1px dashed var(--acc);color:var(--acc);cursor:pointer">${o.nBatch}</span></td>
+      <td><div class="hbar"><div class="ht"><div class="hf" style="width:${barW}%;background:#4493f880"></div></div><div class="hn">${o.total}</div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function computeBatchData(agents){
+  const map={};
+  agents.forEach(a=>{
+    const b=(a.batch||'').trim(); if(!b) return;
+    const m=b.match(/K\s*0*([0-9]+)/i);
+    if(!map[b]) map[b]={batch:b,batch_num:m?+m[1]:NaN,total:0,working:0,training:0,pending:0,long_leave:0,stopped:0};
+    const o=map[b]; o.total++;
+    if(a.status==='Working')o.working++;
+    else if(a.status==='On training')o.training++;
+    else if(a.status==='Pending')o.pending++;
+    else if(a.status==='Long-term leave')o.long_leave++;
+    else if(a.status==='Stopped')o.stopped++;
+  });
+  return Object.values(map);
+}
+
+// Recompute the batch table from CS_AGENTS filtered by the Team/Queue dropdowns.
+function refreshBatch(){
+  const team =document.getElementById('ag-team').value;
+  const queue=document.getElementById('ag-queue').value;
+  const pool=CS_AGENTS.filter(a=>{
+    if(team!=='ALL'&&a.team!==team) return false;
+    if(queue!=='ALL'&&(a.queue||'')!==queue) return false;
+    return true;
+  });
+  batAll=computeBatchData(pool);
+  batApplyAll((document.getElementById('bat-search').value||'').toLowerCase());
+}
+
+function initBatch(){
+  batFilterMode='all';
+  document.querySelectorAll('#tab-agents .tab-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()==='All'));
+  refreshBatch();
+}
+
+function batFilter(mode, btn){
+  batFilterMode=mode;
+  document.querySelectorAll('#tab-agents .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const q=(document.getElementById('bat-search').value||'').toLowerCase();
+  batApplyAll(q);
+}
+
+function batSearch(){
+  const q=(document.getElementById('bat-search').value||'').toLowerCase();
+  batApplyAll(q);
+}
+
+function batApplyAll(q){
+  batFiltered=batAll.filter(b=>{
+    if(q && !b.batch.toLowerCase().includes(q)) return false;
+    if(batFilterMode==='active') return (b.working+b.training+b.pending+b.long_leave)>0;
+    if(batFilterMode==='recent') return b.batch_num>=150;
+    return true;
+  });
+  batPageN=0;
+  batSortApply();
+}
+
+function batSort(k){
+  batSortAsc = batSortKey===k ? !batSortAsc : (k==='batch_num'?false:true);
+  batSortKey=k; batPageN=0; batSortApply();
+}
+
+function batSortApply(){
+  const k=batSortKey, asc=batSortAsc;
+  batFiltered=[...batFiltered].sort((a,b)=>{
+    const av=a[k]||0, bv=b[k]||0;
+    return asc?(typeof av==='number'?av-bv:String(av).localeCompare(String(bv)))
+              :(typeof av==='number'?bv-av:String(bv).localeCompare(String(av)));
+  });
+  batRenderPage();
+}
+
+function batPage(d){ batPageN+=d; batRenderPage(); }
+
+function batRenderPage(){
+  const total=batFiltered.length;
+  const pages=Math.ceil(total/BAT_PER_PAGE)||1;
+  batPageN=Math.max(0,Math.min(batPageN,pages-1));
+  const s=batPageN*BAT_PER_PAGE, e=Math.min(s+BAT_PER_PAGE,total);
+  const slice=batFiltered.slice(s,e);
+
+  document.getElementById('bat-meta').textContent=`${total} batches`;
+  document.getElementById('bat-page-info').textContent=`${s+1}–${e} / ${total}`;
+  document.getElementById('bat-prev').disabled=batPageN===0;
+  document.getElementById('bat-next').disabled=batPageN===pages-1;
+
+  document.getElementById('bat-tbody').innerHTML=slice.map(b=>{
+    const active=b.working+b.training+b.pending;
+    const retention=b.total>0?Math.round(active/b.total*100):0;
+    const retColor=retention>=70?'var(--g)':retention>=40?'var(--w)':'var(--r)';
+    // Status bar
+    const wPct=b.total?Math.round(b.working/b.total*100):0;
+    const tPct=b.total?Math.round(b.training/b.total*100):0;
+    const pPct=b.total?Math.round(b.pending/b.total*100):0;
+    const lPct=b.total?Math.round(b.long_leave/b.total*100):0;
+    const sPct=b.total?Math.round(b.stopped/b.total*100):0;
+    return `<tr>
+      <td class="b mn" style="color:var(--acc);cursor:pointer;text-decoration:underline dotted" onclick="openBatchModal('${b.batch}')" title="Bấm xem chi tiết batch">${b.batch}</td>
+      <td class="c mn">${b.total}</td>
+      <td class="c mn" style="color:var(--g)">${b.working||'—'}</td>
+      <td class="c mn" style="color:var(--w)">${b.training||'—'}</td>
+      <td class="c mn" style="color:var(--acc)">${b.pending||'—'}</td>
+      <td class="c mn" style="color:#4493f8">${b.long_leave||'—'}</td>
+      <td class="c mn" style="color:var(--r)">${b.stopped||'—'}</td>
+      <td class="c"><span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${retColor}">${retention}%</span></td>
+      <td>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px">
+          ${wPct?`<div style="width:${wPct}%;background:var(--g)" title="Working ${b.working}"></div>`:''}
+          ${tPct?`<div style="width:${tPct}%;background:var(--w)" title="Training ${b.training}"></div>`:''}
+          ${pPct?`<div style="width:${pPct}%;background:var(--acc)" title="Pending ${b.pending}"></div>`:''}
+          ${lPct?`<div style="width:${lPct}%;background:#4493f8" title="Long Leave ${b.long_leave}"></div>`:''}
+          ${sPct?`<div style="width:${sPct}%;background:var(--r)" title="Stopped ${b.stopped}"></div>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// TAB SWITCH
+// ============================================================
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='cs')     renderCS();
+initBatch();
+  if(name==='mng')    renderMNG();
+  if(name==='agents'){ renderAgents(); initBatch(); renderNewbie(); }
+  if(name==='hccsat') renderHCCSAT();
+}
+
+// ============================================================
+// DATA LOADER  (fetch cached data.json, refresh every load)
+// ============================================================
+const DATA_URL='data.json';
+
+let pageSnapshot = null;
+function loadCache(){ return pageSnapshot; }
+
+function applyData(d){
+  CS_AGENTS = d.CS_AGENTS||[];  MNG_AGENTS = d.MNG_AGENTS||[];  BATCH_DATA = d.BATCH_DATA||[];
+  CSAT_DATA = d.CSAT_DATA||{};
+  ['tq_week','tq_month','bat_month','overall_week'].forEach(k=>{ if(!CSAT_DATA[k]) CSAT_DATA[k]=[]; });
+  HC_CSAT = d.HC_CSAT||{};
+  ['grp_week','grp_month','overall_week'].forEach(k=>{ if(!HC_CSAT[k]) HC_CSAT[k]=[]; });
+  if(!HC_CSAT.grp_agents) HC_CSAT.grp_agents={};
+  WEEKS7 = (d.WEEKS||[]).slice().sort();  WL7 = d.WEEK_LABELS||{};
+  MONTHS2 = (d.MONTHS||[]).slice().sort(); ML2 = d.MONTH_LABELS||{};
+  WEEKS = WEEKS7; WEEK_LABELS = WL7; MONTHS = MONTHS2; MONTH_LABELS = ML2;
+  CUR_WEEK = WEEKS[WEEKS.length-1]||'';
+  LAST_FULL_WEEK = WEEKS[WEEKS.length-2]||CUR_WEEK;
+  PREV_FULL_WEEK = WEEKS[WEEKS.length-3]||LAST_FULL_WEEK;
+  TODAY = (d.generated_at||'').slice(0,10) || TODAY;  TODAY_D = new Date(TODAY);
+  buildPeriods();
+}
+
+function isoOf(dt){ const y=dt.getFullYear(),m=('0'+(dt.getMonth()+1)).slice(-2),da=('0'+dt.getDate()).slice(-2); return y+'-'+m+'-'+da; }
+function ddmm(iso){ const p=iso.split('-'); return p[2]+'/'+p[1]; }
+
+function buildPeriods(){
+  PERIODS = { today:{s:TODAY,e:TODAY,label:'Today '+ddmm(TODAY)} };
+  PREV = {}; MONTH_KEYS = [];
+  const wkeys=[];
+  WEEKS7.forEach(m=>{                          // ascending Mondays
+    const e=new Date(m); e.setDate(e.getDate()+6);
+    let eIso=isoOf(e); if(eIso>TODAY) eIso=TODAY;
+    const key=(WL7[m]||('W'+m)).toLowerCase();  // 'w34'
+    PERIODS[key]={s:m,e:eIso,label:(WL7[m]||'')+' ('+ddmm(m)+'–'+ddmm(eIso)+')'};
+    wkeys.push(key);
+  });
+  const mkeys=[];
+  MONTHS2.forEach(m1=>{                         // ascending month firsts
+    const d1=new Date(m1), last=new Date(d1.getFullYear(),d1.getMonth()+1,0);
+    let eIso=isoOf(last); const mtd=(eIso>TODAY); if(mtd) eIso=TODAY;
+    const key='t'+(d1.getMonth()+1);            // 't7'
+    PERIODS[key]={s:m1,e:eIso,label:(ML2[m1]||'')+(mtd?' (MTD)':'')};
+    mkeys.push(key);
+  });
+  MONTH_KEYS = mkeys.slice();                   // ascending, e.g. ['t7','t8']
+  const wdesc=wkeys.slice().reverse();          // newest week first
+  PREV.today = wdesc[0]||null;
+  wdesc.forEach((k,i)=>{ PREV[k]=wdesc[i+1]||null; });
+  const mdesc=mkeys.slice().reverse();
+  mdesc.forEach((k,i)=>{ PREV[k]=mdesc[i+1]||null; });
+  const sel=document.getElementById('cs-period');
+  if(sel){
+    const cur=sel.value;
+    const order=['today'].concat(wdesc).concat(mdesc);
+    sel.innerHTML=order.map(k=>`<option value="${k}">${PERIODS[k].label}</option>`).join('');
+    if(PERIODS[cur]) sel.value=cur;
+  }
+}
+
+function renderActive(){
+  const el=document.querySelector('.tab-content.active');
+  const id=el?el.id.replace('tab-',''):'cs';
+  if(id==='mng') renderMNG();
+  else if(id==='agents'){ renderAgents(); initBatch(); renderNewbie(); }
+  else if(id==='hccsat') renderHCCSAT();
+  else renderCS();
+}
+
+function setStamp(gen){
+  const el=document.getElementById('ts'); if(!el) return;
+  const dt=gen?new Date(gen):new Date();
+  el.textContent='Data updated: '+dt.toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'});
+}
+
+function boot(){
+  const cached=loadCache();
+  if(cached){ applyData(cached); renderActive(); setStamp(cached.generated_at); }
+  else { const el=document.getElementById('ts'); if(el) el.textContent='Đang tải dữ liệu…'; }
+  fetch(DATA_URL+'?t='+Date.now(),{cache:'no-store'})
+    .then(r=> r.ok ? r.json() : Promise.reject('HTTP '+r.status))
+    .then(d=>{
+      const changed = !cached || cached.generated_at!==d.generated_at;
+      pageSnapshot = d;
+      if(changed){ applyData(d); renderActive(); }
+      setStamp(d.generated_at);
+    })
+    .catch(err=>{
+      const el=document.getElementById('ts');
+      if(el) el.textContent=cached ? '⚠ Không tải được dữ liệu mới; đang dùng bản lưu '+(cached.generated_at||'không rõ thời điểm')+' ('+err+')' : 'Không tải được data.json ('+err+')';
+    });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+boot();
+
+// ── THEME TOGGLE ─────────────────────────────────────────
+function toggleTheme(){
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☾ Dark' : '☀ Light';
+  try{ localStorage.setItem('hc-theme', isLight ? 'light' : 'dark'); }catch(e){}
+}
+
+// Restore saved theme
+(function(){
+  let saved; try{ saved = localStorage.getItem('hc-theme'); }catch(e){}
+  if(saved === 'light'){
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const btn = document.getElementById('theme-btn');
+      if(btn) btn.textContent = '☾ Dark';
+    });
+  }
+})();
+
+</script>
+<script>
+/* Đồng bộ sáng/tối theo dashboard TQA — bấm hộ nút theme gốc */
+(function(){
+  function apply(t){
+    var wantLight = (t === 'light');
+    var isLight = document.body && document.body.classList.contains('light');
+    if (document.body && wantLight !== isLight && typeof toggleTheme === 'function') toggleTheme();
+  }
+  try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){}
+  window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
+})();
+</script>
+<script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
+<script defer src="/assets/dashboard-keyboard.js?v=20261011-audit"></script>
+</body>
+</html>

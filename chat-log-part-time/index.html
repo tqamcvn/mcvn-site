@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-50">
+<head>
+<script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=false;
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var ss=(await sb.auth.getSession()).data.session;
+    if(!ss){ deny(); return; }
+    var email=(ss.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    var access=await sb.from("app_users").select("role, active").eq("email",email).maybeSingle();
+    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ deny(); return; }
+    if(QA_ONLY){
+      var role=(access.data && access.data.role)||"";
+      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
+    }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+<!-- Theme tối THẬT — đồng bộ dashboard -->
+<style>
+body.tqa-dark{ background:#141517 !important; }
+body.tqa-dark .bg-white{ background-color:#1e2023 !important; }
+body.tqa-dark .bg-slate-50{ background-color:#191b1e !important; }
+body.tqa-dark .bg-slate-100{ background-color:#232629 !important; }
+body.tqa-dark .bg-slate-200{ background-color:#2b2f34 !important; }
+body.tqa-dark .text-slate-900{ color:#f1f3f7 !important; }
+body.tqa-dark .text-slate-800{ color:#e6e9ee !important; }
+body.tqa-dark .text-slate-700{ color:#cfd4dc !important; }
+body.tqa-dark .text-slate-600{ color:#b6bcc6 !important; }
+body.tqa-dark .text-slate-500{ color:#9aa2ae !important; }
+body.tqa-dark .text-slate-400{ color:#828b98 !important; }
+body.tqa-dark .border-slate-100{ border-color:#232629 !important; }
+body.tqa-dark .border-slate-200{ border-color:#2b2f34 !important; }
+body.tqa-dark .border-slate-300{ border-color:#363b41 !important; }
+body.tqa-dark .shadow, body.tqa-dark .shadow-sm, body.tqa-dark .shadow-md, body.tqa-dark .shadow-lg, body.tqa-dark .shadow-xl{ box-shadow:0 2px 10px rgba(0,0,0,.45) !important; }
+</style>
+<script>
+(function(){
+  function setChart(dark){
+    if(!window.Chart) return;
+    Chart.defaults.color = dark ? "#a8b0bd" : "#475569";
+    Chart.defaults.borderColor = dark ? "rgba(255,255,255,.08)" : "rgba(0,0,0,.08)";
+    try{ document.querySelectorAll("canvas").forEach(function(cv){ var ch=Chart.getChart(cv); if(ch) ch.update(); }); }catch(e){}
+  }
+  var T=null; try{ T=new URLSearchParams(location.search).get("theme"); }catch(e){}
+  function apply(t){ (document.body||document.documentElement).classList.toggle("tqa-dark", t==="dark"); setChart(t==="dark"); }
+  function go(){ if(T) apply(T); }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", go); else go();
+  window.addEventListener("load", go);
+  window.addEventListener("message", function(e){ if(e.data&&e.data.type==="tqa-theme"){ T=e.data.theme; apply(T); } });
+})();
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Log Parttime - Performance Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        shopee: {
+                            orange: '#EE4D2D',
+                            lightOrange: '#FFF5F1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+<script src="/assets/tqa-i18n.js" defer></script>
+</head>
+<body class="h-full font-sans text-slate-700 bg-slate-50/50 flex flex-col antialiased">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/70 backdrop-blur-sm z-[60] hidden items-center justify-center">
+        <div class="flex flex-col items-center space-y-3">
+            <div class="w-9 h-9 border-[3px] border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+            <p id="loadingText" class="text-xs text-slate-500 font-medium">Đang tải dữ liệu…</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[70] hidden max-w-md w-[92%]">
+        <div class="bg-rose-600 text-white text-xs px-4 py-3 rounded-xl shadow-lg flex items-start space-x-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+            <span id="errorToastMsg" class="leading-relaxed"></span>
+            <button onclick="document.getElementById('errorToast').classList.add('hidden')" class="ml-auto text-white/80 hover:text-white">✕</button>
+        </div>
+    </div>
+
+    <!-- Config Modal: Web App URL -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[65] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-5 bg-slate-900 text-white flex items-center space-x-3">
+                <i data-lucide="database" class="w-5 h-5 text-amber-400"></i>
+                <div>
+                    <h3 class="font-bold text-sm">Nguồn dữ liệu (Google Apps Script)</h3>
+                    <p class="text-[11px] text-slate-400">Dán URL Web App (…/exec) để trang lấy data tự động.</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="text-slate-500 font-medium block mb-1.5">Web App URL</label>
+                    <input id="configUrlInput" type="url" placeholder="https://script.google.com/macros/s/XXXX/exec"
+                        class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono">
+                    <p class="text-[11px] text-slate-400 mt-1.5">URL sẽ được lưu trên trình duyệt này. Để tất cả mọi người thấy data, hãy gắn cứng URL vào file (nhờ dev cập nhật).</p>
+                </div>
+                <div class="flex justify-end space-x-2 pt-1">
+                    <button onclick="closeConfig()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-lg transition">Đóng</button>
+                    <button onclick="saveConfig()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition">Lưu &amp; Tải data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold shadow-sm">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="font-bold text-slate-900 text-base tracking-tight">CHAT LOG PARTTIME</h1>
+                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-full">BI Dashboard</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Performance Monitoring: Overall → Queue → Batch → CS</p>
+                    </div>
+                </div>
+
+                <!-- Right Action / Meeting Mode Toggle -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div class="hidden md:flex flex-col items-end leading-tight mr-1">
+                        <span id="lastUpdated" class="text-[11px] text-slate-400">Đang tải dữ liệu…</span>
+                        <span id="dataCounts" class="text-[10px] text-slate-300"></span>
+                    </div>
+                    <button onclick="reloadData(true)" id="btnRefreshData" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm disabled:opacity-60" title="Kéo dữ liệu mới nhất từ Google Sheet ngay bây giờ">
+                        <i data-lucide="refresh-cw" class="w-4 h-4" id="refreshIcon"></i>
+                        <span>Cập nhật ngay</span>
+                    </button>
+                    <button onclick="toggleView('meeting')" id="btnMeetingMode" class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                        <i data-lucide="presentation" class="w-4 h-4 text-indigo-600"></i>
+                        <span>Meeting Mode</span>
+                    </button>
+                    <button onclick="resetFilters()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Reset tất cả bộ lọc">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="openConfig()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition" title="Cấu hình nguồn dữ liệu (Web App URL)">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Filter Bar -->
+    <section class="bg-white border-b border-slate-200/60 py-3 px-4 sm:px-6 lg:px-8 shadow-2xs">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-slate-400 font-medium flex items-center mr-1">
+                    <i data-lucide="filter" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>Bộ lọc:
+                </span>
+
+                <!-- Month Filter -->
+                <select id="filterMonth" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Tháng</option>
+                </select>
+
+                <!-- Week Filter -->
+                <select id="filterWeek" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Tuần</option>
+                </select>
+
+                <!-- Queue Filter -->
+                <select id="filterQueue" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Queue (Buyer & Seller)</option>
+                    <option value="Buyer">Queue Buyer</option>
+                    <option value="Seller">Queue Seller</option>
+                </select>
+
+                <!-- Batch Filter -->
+                <select id="filterBatch" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium">
+                    <option value="ALL">Tất cả Batch</option>
+                </select>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative w-full sm:w-64">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Tìm tên CS Agent hoặc Email..." class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard Body -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+        <!-- Executive Overview KPI Cards Row -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <!-- Card 1: Total Contacts -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Total Contacts</span>
+                    <i data-lucide="phone-call" class="w-4 h-4 text-slate-400"></i>
+                </div>
+                <div class="text-xl font-bold text-slate-900" id="kpiTotalContact">0</div>
+                <div class="text-[11px] text-slate-400 mt-1">Tổng lượt chat được xử lý</div>
+            </div>
+
+            <!-- Card 2: Good Rate & Count -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Tỷ Lệ Good</span>
+                    <i data-lucide="thumbs-up" class="w-4 h-4 text-emerald-500"></i>
+                </div>
+                <div class="text-xl font-bold text-emerald-600" id="kpiGoodRate">0.0%</div>
+                <div class="text-[11px] text-emerald-600 font-medium mt-1" id="kpiGoodCnt">0 lượt Good</div>
+            </div>
+
+            <!-- Card 3: Bad Rate & Count -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Tỷ Lệ Bad</span>
+                    <i data-lucide="thumbs-down" class="w-4 h-4 text-rose-500"></i>
+                </div>
+                <div class="text-xl font-bold text-rose-600" id="kpiBadRate">0.0%</div>
+                <div class="text-[11px] text-rose-500 font-medium mt-1" id="kpiBadCnt">0 lượt Bad</div>
+            </div>
+
+            <!-- Card 4: CSAT Rating -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">CSAT Tổng</span>
+                    <i data-lucide="star" class="w-4 h-4 text-amber-500"></i>
+                </div>
+                <div class="text-xl font-bold text-amber-600" id="kpiCsat">0.0%</div>
+                <div class="text-[11px] text-slate-400 mt-1">Công thức: Good / (Good + Bad)</div>
+            </div>
+
+            <!-- Card 5: Buyer / Seller Ratio -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Queue Volume Ratio</span>
+                    <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i>
+                </div>
+                <div class="text-sm font-bold text-slate-800" id="kpiBuyerSellerRatio">Buyer --% | Seller --%</div>
+                <div class="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden flex">
+                    <div id="buyerRatioBar" class="bg-indigo-500 h-full transition-all duration-300" style="width: 50%"></div>
+                    <div id="sellerRatioBar" class="bg-teal-500 h-full transition-all duration-300" style="width: 50%"></div>
+                </div>
+            </div>
+
+            <!-- Card 6: Total CS Active -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-medium">Số CS Hiển Thị</span>
+                    <i data-lucide="user-check" class="w-4 h-4 text-blue-500"></i>
+                </div>
+                <div class="text-xl font-bold text-blue-600" id="kpiActiveCs">0 CS</div>
+                <div class="text-[11px] text-slate-400 mt-1">Theo bộ lọc hiện tại</div>
+            </div>
+        </div>
+
+        <!-- View Navigation Tabs -->
+        <div class="border-b border-slate-200 overflow-x-auto">
+            <nav class="-mb-px flex min-w-max space-x-6 text-xs font-medium">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn pb-3 border-b-2 border-amber-500 text-amber-600 font-semibold flex items-center space-x-1.5">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>1. Tổng Quan Project</span>
+                </button>
+                <button onclick="switchTab('batch')" id="tab-batch" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>2. Performance theo Batch</span>
+                </button>
+                <button onclick="switchTab('roster')" id="tab-roster" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="user-group" class="w-4 h-4"></i>
+                    <span>3. Drill-down Danh Sách CS</span>
+                </button>
+                <button onclick="switchTab('meeting')" id="tab-meeting" class="tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span>4. Weekly/Monthly Review</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="view-overview" class="space-y-6">
+            <!-- Buyer vs Seller Queue Comparison Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Buyer Queue Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                            <h3 class="font-bold text-slate-800 text-sm">BUYER QUEUE PERFORMANCE</h3>
+                        </div>
+                        <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full">Buyer Channel</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-slate-50 p-3 rounded-xl">
+                            <p class="text-xs text-slate-500">Total Contacts</p>
+                            <p class="text-base font-bold text-slate-800 mt-1" id="buyerTotalContact">0</p>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl">
+                            <p class="text-xs text-emerald-700">Số Lượt Good</p>
+                            <p class="text-base font-bold text-emerald-700 mt-1" id="buyerGoodCnt">0</p>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl">
+                            <p class="text-xs text-amber-700">CSAT Score</p>
+                            <p class="text-base font-bold text-amber-700 mt-1" id="buyerCsat">0.0%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seller Queue Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+                            <h3 class="font-bold text-slate-800 text-sm">SELLER QUEUE PERFORMANCE</h3>
+                        </div>
+                        <span class="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full">Seller Channel</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-slate-50 p-3 rounded-xl">
+                            <p class="text-xs text-slate-500">Total Contacts</p>
+                            <p class="text-base font-bold text-slate-800 mt-1" id="sellerTotalContact">0</p>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl">
+                            <p class="text-xs text-emerald-700">Số Lượt Good</p>
+                            <p class="text-base font-bold text-emerald-700 mt-1" id="sellerGoodCnt">0</p>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl">
+                            <p class="text-xs text-amber-700">CSAT Score</p>
+                            <p class="text-base font-bold text-amber-700 mt-1" id="sellerCsat">0.0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Trend Chart -->
+                <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-sm">Xu hướng Sản Lượng & CSAT theo Tuần</h3>
+                        <span class="text-xs text-slate-400">Weekly Breakdown</span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- CS Performance Tier Pie Chart -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm">Phân Bổ Performance Tier CS</h3>
+                        <span class="text-xs text-slate-400">Tier Distribution</span>
+                    </div>
+                    <div class="h-52 relative my-auto">
+                        <canvas id="tierChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-3 text-center text-[11px] gap-1 pt-2 border-t border-slate-100">
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+                            <span class="text-slate-500">Top (&ge;88%)</span>
+                        </div>
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                            <span class="text-slate-500">Avg (75-87%)</span>
+                        </div>
+                        <div>
+                            <span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1"></span>
+                            <span class="text-slate-500">Low (&lt;75%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BATCH PERFORMANCE -->
+        <div id="view-batch" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">So Sánh CSAT & Volume giữa các Batch</h3>
+                        <p class="text-xs text-slate-400">Theo dõi hiệu quả đào tạo từ Batch K167 đến K203</p>
+                    </div>
+                </div>
+                <div class="h-64">
+                    <canvas id="batchCompareChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Batch Summary Matrix Table -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 text-sm">Bảng Chi Tiết Tổng Quan Theo Batch</h3>
+                    <span class="text-xs text-slate-400">Batch Roster Matrix</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-medium uppercase border-b border-slate-100">
+                            <tr>
+                                <th class="p-3 pl-5">Batch ID</th>
+                                <th class="p-3">Khung Thời Gian (Start - End)</th>
+                                <th class="p-3">Ngày Online Chat</th>
+                                <th class="p-3 text-center">Số CS Phụ Trách</th>
+                                <th class="p-3 text-right">Tổng Contact</th>
+                                <th class="p-3 text-right">Tỷ Lệ Good</th>
+                                <th class="p-3 text-right">Tỷ Lệ Bad</th>
+                                <th class="p-3 text-center">CSAT Score</th>
+                                <th class="p-3 text-center pr-5">Đánh Giá Batch</th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CS ROSTER & DRILL-DOWN -->
+        <div id="view-roster" class="space-y-6 hidden">
+            <!-- Table Header & Quick Tier Filters -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                    <h3 class="font-bold text-slate-800 text-sm">Danh Sách CS Chat Log Parttime</h3>
+                    <span id="csCountBadge" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded-full">0 CS</span>
+                </div>
+
+                <!-- Tier Quick Filter Pills -->
+                <div class="flex items-center space-x-1.5 text-xs">
+                    <button onclick="filterByTier('ALL')" id="tier-pill-ALL" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-800 text-white">Tất cả</button>
+                    <button onclick="filterByTier('Top')" id="tier-pill-Top" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Top (&ge;88%)</button>
+                    <button onclick="filterByTier('Average')" id="tier-pill-Average" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Average (75-87%)</button>
+                    <button onclick="filterByTier('Low')" id="tier-pill-Low" class="tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">Needs Attention (&lt;75%)</button>
+                </div>
+            </div>
+
+            <!-- Main CS Roster Table -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-medium uppercase border-b border-slate-100">
+                            <tr>
+                                <th class="p-3 pl-5">STT</th>
+                                <th class="p-3">Họ và Tên CS</th>
+                                <th class="p-3">Email</th>
+                                <th class="p-3 text-center">Batch</th>
+                                <th class="p-3 text-center">Queue</th>
+                                <th class="p-3 text-right">Total Contact</th>
+                                <th class="p-3 text-right">Lượt Good</th>
+                                <th class="p-3 text-right">Lượt Bad</th>
+                                <th class="p-3 text-center">CSAT Score</th>
+                                <th class="p-3 text-center">Phân Loại</th>
+                                <th class="p-3 text-center pr-5">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csRosterTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: MEETING REVIEW MODE -->
+        <div id="view-meeting" class="space-y-6 hidden">
+            <!-- Executive Summary Header -->
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md flex items-center justify-between">
+                <div>
+                    <span class="text-xs uppercase font-semibold text-amber-400 tracking-wider">Weekly / Monthly Review Executive Summary</span>
+                    <h2 class="text-xl font-bold mt-1">Báo Cáo Hiệu Quả Chat Log Parttime</h2>
+                    <p class="text-xs text-slate-300 mt-1">Nội dung tổng hợp tự động cho buổi họp đánh giá định kỳ Team Leads & Operations</p>
+                </div>
+                <div class="hidden sm:block text-right border-l border-slate-800 pl-6">
+                    <p class="text-xs text-slate-400">Thời gian báo cáo</p>
+                    <p class="text-sm font-bold text-amber-400 mt-0.5" id="meetingDateText">Tháng 08/2026</p>
+                </div>
+            </div>
+
+            <!-- 3 Columns Insights -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Highlight 1: Success Points -->
+                <div class="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm bg-emerald-50/20">
+                    <div class="flex items-center space-x-2 text-emerald-700 font-bold text-sm mb-3">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        <h3>Điểm Sáng Performance</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4" id="meetingHighlights">
+                        <li>Queue Buyer duy trì tỷ lệ CSAT ổn định ở mức cao.</li>
+                        <li>Các Batch mới (K194, K203) hòa nhập nhanh sau thời gian Online Date.</li>
+                        <li>Số lượng CS đạt Tier Top (&ge;88%) chiếm tỷ trọng lớn.</li>
+                    </ul>
+                </div>
+
+                <!-- Highlight 2: Attention Items -->
+                <div class="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm bg-amber-50/20">
+                    <div class="flex items-center space-x-2 text-amber-700 font-bold text-sm mb-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        <h3>Điểm Cần Chú Ý</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4" id="meetingAlerts">
+                        <li>Queue Seller phát sinh một số case Bad liên quan đến quy trình xử lý đơn.</li>
+                        <li>Cần rà soát nhóm CS thuộc Tier Low để lên kế hoạch coaching 1-on-1.</li>
+                    </ul>
+                </div>
+
+                <!-- Highlight 3: Action Items -->
+                <div class="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm bg-indigo-50/20">
+                    <div class="flex items-center space-x-2 text-indigo-700 font-bold text-sm mb-3">
+                        <i data-lucide="target" class="w-5 h-5"></i>
+                        <h3>Hành Động Đề Xuất (Action Plan)</h3>
+                    </div>
+                    <ul class="text-xs text-slate-600 space-y-2 list-disc pl-4">
+                        <li>TLs tiến hành audit ngẫu nhiên 5 chat/tuần với các bạn Tier Low.</li>
+                        <li>Tổ chức refresh training quy trình Seller Chat vào giữa tháng.</li>
+                        <li>Tuyên dương và khen thưởng Top Performers của tháng.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Spotlight Top Performers & Coaching List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Top Performers Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center text-amber-600">
+                            <i data-lucide="award" class="w-4 h-4 mr-1.5"></i> Top CS Xuất Sắc Nhất
+                        </h3>
+                        <span class="text-xs text-slate-400">CSAT &ge; 88%</span>
+                    </div>
+                    <div id="meetingTopCsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Low Performers Coaching Card -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center text-rose-600">
+                            <i data-lucide="user-x" class="w-4 h-4 mr-1.5"></i> Nhóm CS Cần Kèm Cặp (Coaching)
+                        </h3>
+                        <span class="text-xs text-slate-400">CSAT &lt; 75%</span>
+                    </div>
+                    <div id="meetingLowCsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- CS Detail Modal -->
+    <div id="csModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30" id="modalInitials">
+                        CS
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm" id="modalCsName">Nguyen Van A</h3>
+                        <p class="text-xs text-slate-400" id="modalCsEmail">email@shopee.com</p>
+                    </div>
+                </div>
+                <button onclick="closeCsModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6 space-y-4 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Batch Đào Tạo</span>
+                        <p class="text-sm font-bold text-slate-800 mt-0.5" id="modalBatch">Batch K186</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-slate-400">Ngày Online Chat</span>
+                        <p class="text-sm font-bold text-slate-800 mt-0.5" id="modalOnlineDate">23/03/2026</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                        <span class="text-slate-500 text-[11px]">Tổng Contacts</span>
+                        <p class="text-base font-bold text-slate-800 mt-1" id="modalContacts">0</p>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <span class="text-emerald-700 text-[11px]">Số Lượt Good</span>
+                        <p class="text-base font-bold text-emerald-700 mt-1" id="modalGoodCnt">0</p>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                        <span class="text-amber-700 text-[11px]">CSAT Score</span>
+                        <p class="text-base font-bold text-amber-700 mt-1" id="modalCsat">0.0%</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4">
+                    <h4 class="font-bold text-slate-800 mb-2">Đánh Giá Performance & Đề Xuất</h4>
+                    <p class="text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100" id="modalRecommendation">
+                        Nhân sự đạt hiệu suất tốt, duy trì thái độ giao tiếp chuẩn mực và xử lý thắc mắc người dùng nhanh chóng.
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="closeCsModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-medium rounded-xl text-xs transition">
+                    Đóng Modal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =================================================================
+         *  DATA SOURCE
+         *  Đường dẫn data.json được private transport chuyển tới API có xác thực.
+         *  Nguồn được quản lý tập trung; không nhận URL từ query/localStorage.
+         * ================================================================= */
+        const DEFAULT_DATA_URL = "data.json";
+
+        function getApiUrl() {
+            // The private transport validates the session and reads the fixed dataset.
+            try { localStorage.removeItem('chatlog_api_url'); } catch (e) {}
+            return DEFAULT_DATA_URL;
+        }
+
+        // Live data (từ sheet thật)
+        let ROSTER = [];          // [{batch,startDate,endDate,onlineDate,name,email,workingStatus}]
+        let RECORDS = [];         // [{email,name,batch,month,week,weekDate,userType,good,bad,contact}]
+        let rosterByEmail = {};
+        let masterCsAll = [];     // aggregate theo CS trên TOÀN bộ records (cho modal)
+
+        let filteredRecords = [];
+        let filteredData = [];    // aggregate theo CS sau khi lọc (cho bảng CS / tier)
+        let currentTierFilter = 'ALL';
+
+        // Chart instances
+        let trendChartObj = null;
+        let tierChartObj = null;
+        let batchChartObj = null;
+
+        function cleanName(n) {
+            return String(n || '').replace(/^\d+\.\s*CH\.?\s*LOG\s*/i, '').replace(/^\d+\.\s*/, '').trim();
+        }
+
+        /* --------- Nạp dữ liệu từ Web App --------- */
+        let dataLoading = false;
+        async function reloadData(force) {
+            if (dataLoading) return;
+            const url = getApiUrl();
+            if (!url) { openConfig(); setStatus('Chưa cấu hình nguồn dữ liệu'); return; }
+
+            dataLoading = true;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000);
+            const btn = document.getElementById('btnRefreshData');
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.classList.add('animate-spin');
+            if (btn) btn.disabled = true;
+            showLoading(force ? 'Đang tải bản dữ liệu đã được xuất gần nhất…' : 'Đang tải dữ liệu…');
+
+            try {
+                const sep = url.includes('?') ? '&' : '?';
+                const full = url + sep + (force ? 'refresh=1&' : '') + 't=' + Date.now();
+                const res = await fetch(full, { method: 'GET', redirect: 'follow', signal: controller.signal, cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const json = await res.json();
+                if (json && json.error) throw new Error(json.error);
+                applyPayload(json);
+            } catch (err) {
+                const reason = err.name === 'AbortError' ? 'Hết thời gian chờ. Vui lòng thử lại.' : err.message;
+                showError('Không tải được dữ liệu (' + reason + '). Vui lòng thử lại hoặc báo team QA.');
+                setStatus('Không cập nhật được' + (RECORDS.length ? ' · Đang hiển thị dữ liệu lần tải trước.' : ''));
+            } finally {
+                clearTimeout(timeout);
+                dataLoading = false;
+                hideLoading();
+                if (icon) icon.classList.remove('animate-spin');
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        function applyPayload(json) {
+            if (!json || !Array.isArray(json.roster) || !Array.isArray(json.logs) ||
+                json.roster.some(r => !r || typeof r !== 'object') || json.logs.some(r => !r || typeof r !== 'object')) {
+                throw new Error('Nguồn trả về dữ liệu không hợp lệ.');
+            }
+            ROSTER = (json.roster || []).map(r => ({ ...r, email: String(r.email || '').toLowerCase().trim() }));
+            RECORDS = (json.logs || []).map(r => ({
+                email: String(r.email || '').toLowerCase().trim(),
+                name: r.name || '',
+                batch: r.batch || '',
+                month: r.month || '',
+                week: r.week || '',
+                weekDate: r.weekDate || '',
+                userType: r.userType || '',
+                good: Number(r.good) || 0,
+                bad: Number(r.bad) || 0,
+                contact: Number(r.contact) || 0
+            }));
+            rosterByEmail = {};
+            ROSTER.forEach(r => { rosterByEmail[r.email] = r; });
+
+            masterCsAll = aggregateByCs(RECORDS);
+
+            const sourceTime = json.lastUpdated ? Date.parse(json.lastUpdated) : NaN;
+            const sourceLabel = Number.isFinite(sourceTime) ? (json.lastUpdatedText || new Date(sourceTime).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })) : 'Không rõ thời điểm nguồn cập nhật';
+            const stale = Number.isFinite(sourceTime) && Date.now() - sourceTime > 24 * 60 * 60 * 1000;
+            setStatus((stale ? '⚠ Bản dữ liệu đã hơn 24 giờ · ' : '') + 'Cập nhật lúc: ' + sourceLabel);
+            const c = json.counts || {};
+            const dc = document.getElementById('dataCounts');
+            if (dc) dc.innerText = (c.roster != null ? c.roster + ' CS · ' : '') + (RECORDS.length) + ' dòng log';
+
+            populateFilters();
+            applyFilters();
+        }
+
+        function setStatus(text) {
+            const el = document.getElementById('lastUpdated');
+            if (el) el.innerText = text;
+        }
+
+        /* --------- Gom nhóm theo CS --------- */
+        function aggregateByCs(records) {
+            const map = {};
+            records.forEach(r => {
+                let a = map[r.email];
+                if (!a) {
+                    const info = rosterByEmail[r.email] || {};
+                    a = map[r.email] = {
+                        id: r.email,
+                        email: r.email,
+                        name: cleanName(info.name || r.name || r.email),
+                        fullName: info.name || r.name || '',
+                        batch: info.batch || r.batch || '—',
+                        startDate: info.startDate || '',
+                        endDate: info.endDate || '',
+                        onlineDate: info.onlineDate || '',
+                        good: 0, bad: 0, contact: 0,
+                        buyerContact: 0, sellerContact: 0
+                    };
+                }
+                a.good += r.good; a.bad += r.bad; a.contact += r.contact;
+                if (r.userType === 'Buyer') a.buyerContact += r.contact;
+                else if (r.userType === 'Seller') a.sellerContact += r.contact;
+            });
+            return Object.values(map).map(a => {
+                const evalc = a.good + a.bad;
+                a.csat = evalc > 0 ? parseFloat(((a.good / evalc) * 100).toFixed(1)) : null;
+                a.goodRate = a.csat;
+                a.userType = a.sellerContact > a.buyerContact ? 'Seller' : 'Buyer';
+                if (a.csat === null) a.tier = 'NoData';
+                else if (a.csat >= 88) a.tier = 'Top';
+                else if (a.csat < 75) a.tier = 'Low';
+                else a.tier = 'Average';
+                return a;
+            });
+        }
+
+        /* --------- Populate bộ lọc động --------- */
+        function populateFilters() {
+            // Tháng
+            const months = [...new Set(RECORDS.map(r => r.month).filter(Boolean))].sort().reverse();
+            const mSel = document.getElementById('filterMonth');
+            const mPrev = mSel.value;
+            mSel.innerHTML = '<option value="ALL">Tất cả Tháng</option>' +
+                months.map(m => { const [y, mo] = m.split('-'); return `<option value="${m}">Tháng ${mo}/${y}</option>`; }).join('');
+            mSel.value = months.includes(mPrev) ? mPrev : 'ALL';
+
+            // Batch (theo roster)
+            const batches = [...new Set(ROSTER.map(r => r.batch).filter(Boolean))].sort();
+            const bSel = document.getElementById('filterBatch');
+            const bPrev = bSel.value;
+            bSel.innerHTML = '<option value="ALL">Tất cả Batch</option>' +
+                batches.map(b => `<option value="${b}">Batch ${b}</option>`).join('');
+            bSel.value = batches.includes(bPrev) ? bPrev : 'ALL';
+
+            // Tuần (theo cột report_week: "W" & WEEKNUM) — sắp xếp theo số tuần
+            const weeks = distinctWeeks();
+            const wSel = document.getElementById('filterWeek');
+            const wPrev = wSel.value;
+            wSel.innerHTML = '<option value="ALL">Tất cả Tuần</option>' +
+                weeks.map(w => `<option value="${w}">Tuần ${weekNum(w)} (${w})</option>`).join('');
+            wSel.value = weeks.includes(wPrev) ? wPrev : 'ALL';
+        }
+
+        function distinctBatches() {
+            return [...new Set(ROSTER.map(r => r.batch).filter(Boolean))].sort();
+        }
+
+        function weekNum(w) { return parseInt(String(w).replace(/\D/g, ''), 10) || 0; }
+
+        function distinctWeeks() {
+            return [...new Set(RECORDS.map(r => r.week).filter(Boolean))].sort((a, b) => weekNum(a) - weekNum(b));
+        }
+
+        function applyFilters() {
+            const monthVal = document.getElementById('filterMonth').value;
+            const weekVal = document.getElementById('filterWeek').value;
+            const queueVal = document.getElementById('filterQueue').value;
+            const batchVal = document.getElementById('filterBatch').value;
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            // Lọc ở cấp độ TỪNG dòng log
+            filteredRecords = RECORDS.filter(r => {
+                const matchMonth = (monthVal === 'ALL') || (r.month === monthVal);
+                const matchWeek = (weekVal === 'ALL') || (r.week === weekVal);
+                const matchQueue = (queueVal === 'ALL') || (r.userType === queueVal);
+                const matchBatch = (batchVal === 'ALL') || (r.batch === batchVal);
+                const matchSearch = !searchVal ||
+                    cleanName(r.name).toLowerCase().includes(searchVal) ||
+                    r.email.toLowerCase().includes(searchVal) ||
+                    String(r.batch).toLowerCase().includes(searchVal);
+                return matchMonth && matchWeek && matchQueue && matchBatch && matchSearch;
+            });
+
+            // Gom theo CS + áp bộ lọc Tier
+            filteredData = aggregateByCs(filteredRecords)
+                .filter(cs => (currentTierFilter === 'ALL') || (cs.tier === currentTierFilter))
+                .sort((a, b) => {
+                    if (a.csat === null && b.csat === null) return 0;
+                    if (a.csat === null) return 1;
+                    if (b.csat === null) return -1;
+                    return b.csat - a.csat;
+                });
+
+            renderAllViews();
+        }
+
+        function filterByTier(tier) {
+            currentTierFilter = tier;
+            document.querySelectorAll('.tier-pill').forEach(btn => {
+                btn.className = "tier-pill px-3 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+            });
+            const activePill = document.getElementById(`tier-pill-${tier}`);
+            if (activePill) {
+                activePill.className = "tier-pill px-3 py-1 rounded-lg font-medium bg-slate-800 text-white shadow-xs";
+            }
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterMonth').value = 'ALL';
+            document.getElementById('filterWeek').value = 'ALL';
+            document.getElementById('filterQueue').value = 'ALL';
+            document.getElementById('filterBatch').value = 'ALL';
+            document.getElementById('searchInput').value = '';
+            currentTierFilter = 'ALL';
+            filterByTier('ALL');
+        }
+
+        // Calculate KPI summaries
+        function updateHeaderMetrics() {
+            const totalContact = filteredRecords.reduce((acc, i) => acc + i.contact, 0);
+            const totalGood = filteredRecords.reduce((acc, i) => acc + i.good, 0);
+            const totalBad = filteredRecords.reduce((acc, i) => acc + i.bad, 0);
+            const totalEvaluated = totalGood + totalBad;
+
+            const goodRate = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
+            const badRate = totalEvaluated > 0 ? ((totalBad / totalEvaluated) * 100).toFixed(1) : '0.0';
+
+            // CSAT = Good / (Good + Bad) * 100%
+            const overallCsat = totalEvaluated > 0 ? ((totalGood / totalEvaluated) * 100).toFixed(1) : '0.0';
+
+            const buyerContacts = filteredRecords.filter(i => i.userType === 'Buyer').reduce((acc, i) => acc + i.contact, 0);
+            const sellerContacts = filteredRecords.filter(i => i.userType === 'Seller').reduce((acc, i) => acc + i.contact, 0);
+            const sumContacts = buyerContacts + sellerContacts || 1;
+
+            const buyerPct = Math.round((buyerContacts / sumContacts) * 100);
+            const sellerPct = 100 - buyerPct;
+
+            document.getElementById('kpiTotalContact').innerText = totalContact.toLocaleString();
+            document.getElementById('kpiGoodRate').innerText = `${goodRate}%`;
+            document.getElementById('kpiGoodCnt').innerText = `${totalGood.toLocaleString()} lượt Good`;
+            document.getElementById('kpiBadRate').innerText = `${badRate}%`;
+            document.getElementById('kpiBadCnt').innerText = `${totalBad.toLocaleString()} lượt Bad`;
+            document.getElementById('kpiCsat').innerText = `${overallCsat}%`;
+
+            document.getElementById('kpiBuyerSellerRatio').innerText = `Buyer ${buyerPct}% | Seller ${sellerPct}%`;
+            document.getElementById('buyerRatioBar').style.width = `${buyerPct}%`;
+            document.getElementById('sellerRatioBar').style.width = `${sellerPct}%`;
+
+            document.getElementById('kpiActiveCs').innerText = `${filteredData.length} CS`;
+        }
+
+        function updateBuyerSellerCards() {
+            const buyerItems = filteredRecords.filter(i => i.userType === 'Buyer');
+            const sellerItems = filteredRecords.filter(i => i.userType === 'Seller');
+
+            // Buyer
+            const bContact = buyerItems.reduce((acc, i) => acc + i.contact, 0);
+            const bGood = buyerItems.reduce((acc, i) => acc + i.good, 0);
+            const bBad = buyerItems.reduce((acc, i) => acc + i.bad, 0);
+            const bEval = bGood + bBad;
+            const bCsat = bEval > 0 ? ((bGood / bEval) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('buyerTotalContact').innerText = bContact.toLocaleString();
+            document.getElementById('buyerGoodCnt').innerText = bGood.toLocaleString();
+            document.getElementById('buyerCsat').innerText = `${bCsat}%`;
+
+            // Seller
+            const sContact = sellerItems.reduce((acc, i) => acc + i.contact, 0);
+            const sGood = sellerItems.reduce((acc, i) => acc + i.good, 0);
+            const sBad = sellerItems.reduce((acc, i) => acc + i.bad, 0);
+            const sEval = sGood + sBad;
+            const sCsat = sEval > 0 ? ((sGood / sEval) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('sellerTotalContact').innerText = sContact.toLocaleString();
+            document.getElementById('sellerGoodCnt').innerText = sGood.toLocaleString();
+            document.getElementById('sellerCsat').innerText = `${sCsat}%`;
+        }
+
+        function renderBatchTable() {
+            const tbody = document.getElementById('batchTableBody');
+            const batches = distinctBatches();
+
+            if (batches.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">Chưa có dữ liệu batch.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = batches.map(b => {
+                const rosterSample = ROSTER.find(r => r.batch === b) || {};
+                const headcount = ROSTER.filter(r => r.batch === b).length;
+                const bData = RECORDS.filter(i => i.batch === b);
+                const contact = bData.reduce((acc, i) => acc + i.contact, 0);
+                const good = bData.reduce((acc, i) => acc + i.good, 0);
+                const bad = bData.reduce((acc, i) => acc + i.bad, 0);
+                const evalCount = good + bad;
+                const hasData = evalCount > 0;
+                const rate = hasData ? ((good / evalCount) * 100).toFixed(1) : '—';
+                const badRate = hasData ? ((bad / evalCount) * 100).toFixed(1) : '—';
+                const batchCsat = hasData ? ((good / evalCount) * 100).toFixed(1) : '—';
+                const rateNum = hasData ? (good / evalCount) * 100 : -1;
+
+                let tagHtml = `<span class="px-2.5 py-1 rounded-full bg-slate-50 text-slate-500 text-[10px] font-semibold border border-slate-200">Chưa có data</span>`;
+                if (hasData) {
+                    tagHtml = `<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200">Xuất Sắc</span>`;
+                    if (rateNum < 75) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold border border-rose-200">Cần Cải Thiện</span>`;
+                    else if (rateNum < 88) tagHtml = `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">Đạt Yêu Cầu</span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 pl-5 font-bold text-slate-800">Batch ${b}</td>
+                        <td class="p-3 text-slate-500">${rosterSample.startDate || 'N/A'} - ${rosterSample.endDate || 'N/A'}</td>
+                        <td class="p-3 font-medium text-slate-700">${rosterSample.onlineDate || 'N/A'}</td>
+                        <td class="p-3 text-center font-semibold text-slate-800">${headcount}</td>
+                        <td class="p-3 text-right font-medium">${contact.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${hasData ? rate + '%' : '—'}</td>
+                        <td class="p-3 text-right text-rose-500">${hasData ? badRate + '%' : '—'}</td>
+                        <td class="p-3 text-center font-semibold text-amber-600">${hasData ? batchCsat + '%' : '—'}</td>
+                        <td class="p-3 text-center pr-5">${tagHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderCsRosterTable() {
+            const tbody = document.getElementById('csRosterTableBody');
+            document.getElementById('csCountBadge').innerText = `${filteredData.length} CS`;
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="p-8 text-center text-slate-400">
+                            Không tìm thấy nhân sự phù hợp với bộ lọc hiện tại.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredData.map((item, index) => {
+                let badgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                let tierText = "Average";
+                if (item.tier === 'Top') {
+                    badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    tierText = "Top Performer";
+                } else if (item.tier === 'Low') {
+                    badgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                    tierText = "Needs Coaching";
+                } else if (item.tier === 'NoData') {
+                    badgeClass = "bg-slate-50 text-slate-500 border-slate-200";
+                    tierText = "Chưa có data";
+                }
+
+                const queueBadge = item.userType === 'Buyer' ?
+                    '<span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">Buyer</span>' :
+                    '<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-medium">Seller</span>';
+
+                const csatText = item.csat === null ? '—' : `${item.csat}%`;
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3 pl-5 text-slate-400 font-medium">${index + 1}</td>
+                        <td class="p-3 font-bold text-slate-800">${item.name}</td>
+                        <td class="p-3 text-slate-500 text-[11px] font-mono">${item.email}</td>
+                        <td class="p-3 text-center font-medium"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700">${item.batch}</span></td>
+                        <td class="p-3 text-center">${queueBadge}</td>
+                        <td class="p-3 text-right font-medium text-slate-800">${item.contact.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold text-emerald-600">${item.good.toLocaleString()}</td>
+                        <td class="p-3 text-right text-rose-500 font-medium">${item.bad.toLocaleString()}</td>
+                        <td class="p-3 text-center font-bold text-amber-600">${csatText}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}">${tierText}</span>
+                        </td>
+                        <td class="p-3 text-center pr-5">
+                            <button onclick="openCsModal('${item.id}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 transition">
+                                Chi tiết
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderMeetingView() {
+            const rated = filteredData.filter(c => c.csat !== null);
+            const topCs = [...rated].sort((a, b) => b.csat - a.csat).slice(0, 3);
+            const lowCs = [...rated].sort((a, b) => a.csat - b.csat).slice(0, 3);
+
+            const emptyMsg = '<p class="text-xs text-slate-400 py-3 text-center">Chưa có dữ liệu phù hợp bộ lọc.</p>';
+            const topContainer = document.getElementById('meetingTopCsList');
+            topContainer.innerHTML = topCs.length ? topCs.map(c => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center text-xs">
+                            ${c.name[0]}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-xs">${c.name}</p>
+                            <p class="text-[10px] text-slate-500">Batch ${c.batch} • ${c.userType}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-emerald-700">${c.csat}% CSAT</span>
+                        <p class="text-[10px] text-slate-400">${c.good.toLocaleString()} Good</p>
+                    </div>
+                </div>
+            `).join('') : emptyMsg;
+
+            const lowContainer = document.getElementById('meetingLowCsList');
+            lowContainer.innerHTML = lowCs.length ? lowCs.map(c => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50/50 border border-rose-100">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-rose-500 text-white font-bold flex items-center justify-center text-xs">
+                            ${c.name[0]}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-xs">${c.name}</p>
+                            <p class="text-[10px] text-slate-500">Batch ${c.batch} • ${c.userType}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-rose-600">${c.csat}% CSAT</span>
+                        <p class="text-[10px] text-slate-400">${c.bad.toLocaleString()} Bad</p>
+                    </div>
+                </div>
+            `).join('') : emptyMsg;
+        }
+
+        function renderCharts() {
+            // 1. Trend Chart
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            if (trendChartObj) trendChartObj.destroy();
+
+            // Trend thực tế theo tuần (report_week = "W"&WEEKNUM) từ dữ liệu đã lọc
+            const weeks = [...new Set(filteredRecords.map(r => r.week).filter(Boolean))].sort((a, b) => weekNum(a) - weekNum(b));
+            const trendCsat = weeks.map(w => {
+                const rs = filteredRecords.filter(r => r.week === w);
+                const g = rs.reduce((a, i) => a + i.good, 0);
+                const b = rs.reduce((a, i) => a + i.bad, 0);
+                return (g + b) > 0 ? parseFloat(((g / (g + b)) * 100).toFixed(1)) : null;
+            });
+            const trendVolume = weeks.map(w =>
+                filteredRecords.filter(r => r.week === w).reduce((a, i) => a + i.contact, 0)
+            );
+
+            trendChartObj = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: weeks.map(w => 'Tuần ' + weekNum(w)),
+                    datasets: [
+                        {
+                            label: 'CSAT Score (%)',
+                            data: trendCsat,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            spanGaps: true,
+                            yAxisID: 'yCsat'
+                        },
+                        {
+                            label: 'Total Contacts',
+                            data: trendVolume,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            yAxisID: 'yVolume'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        yCsat: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 60,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        },
+                        yVolume: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+
+            // 2. Tier Doughnut Chart
+            const ctxTier = document.getElementById('tierChart').getContext('2d');
+            if (tierChartObj) tierChartObj.destroy();
+
+            const topCount = filteredData.filter(i => i.tier === 'Top').length;
+            const avgCount = filteredData.filter(i => i.tier === 'Average').length;
+            const lowCount = filteredData.filter(i => i.tier === 'Low').length;
+
+            tierChartObj = new Chart(ctxTier, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Top', 'Average', 'Low'],
+                    datasets: [{
+                        data: [topCount, avgCount, lowCount],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+
+            // 3. Batch Compare Bar Chart
+            const ctxBatch = document.getElementById('batchCompareChart').getContext('2d');
+            if (batchChartObj) batchChartObj.destroy();
+
+            const batches = distinctBatches();
+            const batchCsatScores = batches.map(b => {
+                const bItems = RECORDS.filter(i => i.batch === b);
+                const g = bItems.reduce((acc, i) => acc + i.good, 0);
+                const bd = bItems.reduce((acc, i) => acc + i.bad, 0);
+                return (g + bd) > 0 ? parseFloat(((g / (g + bd)) * 100).toFixed(1)) : 0;
+            });
+
+            batchChartObj = new Chart(ctxBatch, {
+                type: 'bar',
+                data: {
+                    labels: batches.map(b => `Batch ${b}`),
+                    datasets: [{
+                        label: 'CSAT Score (%)',
+                        data: batchCsatScores,
+                        backgroundColor: '#818cf8',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 50,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function openCsModal(csId) {
+            const cs = masterCsAll.find(i => i.id === csId) || filteredData.find(i => i.id === csId);
+            if (!cs) return;
+
+            const initials = (cs.name || '?').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+            document.getElementById('modalInitials').innerText = initials || 'CS';
+            document.getElementById('modalCsName').innerText = cs.name;
+            document.getElementById('modalCsEmail').innerText = cs.email;
+            document.getElementById('modalBatch').innerText = `Batch ${cs.batch}`;
+            document.getElementById('modalOnlineDate').innerText = cs.onlineDate || '—';
+            document.getElementById('modalContacts').innerText = cs.contact.toLocaleString();
+            document.getElementById('modalGoodCnt').innerText = cs.good.toLocaleString();
+            document.getElementById('modalCsat').innerText = cs.csat === null ? '—' : `${cs.csat}%`;
+
+            const rec = document.getElementById('modalRecommendation');
+            if (rec) {
+                if (cs.tier === 'Top') rec.innerText = 'Nhân sự đạt hiệu suất tốt (CSAT ≥ 88%), duy trì thái độ giao tiếp chuẩn mực và xử lý thắc mắc người dùng nhanh chóng. Đề xuất tuyên dương.';
+                else if (cs.tier === 'Low') rec.innerText = 'CSAT dưới 75% — cần coaching 1-on-1, rà soát lại các case Bad và quy trình xử lý.';
+                else if (cs.tier === 'NoData') rec.innerText = 'Chưa có dữ liệu log trong kỳ được chọn.';
+                else rec.innerText = 'Hiệu suất ở mức trung bình (75–87%). Tiếp tục theo dõi và hỗ trợ để nâng CSAT lên nhóm Top.';
+            }
+
+            document.getElementById('csModal').classList.remove('hidden');
+        }
+
+        function closeCsModal() {
+            document.getElementById('csModal').classList.add('hidden');
+        }
+
+        function switchTab(tabKey) {
+            const views = ['overview', 'batch', 'roster', 'meeting'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.add('hidden');
+
+                const btn = document.getElementById(`tab-${v}`);
+                if (btn) {
+                    btn.className = "tab-btn pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center space-x-1.5 transition";
+                }
+            });
+
+            const activeView = document.getElementById(`view-${tabKey}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-${tabKey}`);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn pb-3 border-b-2 border-amber-500 text-amber-600 font-semibold flex items-center space-x-1.5 transition";
+            }
+        }
+
+        function toggleView(tabKey) {
+            switchTab(tabKey);
+        }
+
+        function renderAllViews() {
+            const monthVal = document.getElementById('filterMonth').value;
+            const mt = document.getElementById('meetingDateText');
+            if (mt) {
+                if (monthVal && monthVal !== 'ALL') { const [y, mo] = monthVal.split('-'); mt.innerText = `Tháng ${mo}/${y}`; }
+                else mt.innerText = 'Tất cả kỳ';
+            }
+            updateHeaderMetrics();
+            updateBuyerSellerCards();
+            renderBatchTable();
+            renderCsRosterTable();
+            renderMeetingView();
+            renderCharts();
+        }
+
+        /* --------- UI helpers: loading / error / config --------- */
+        function showLoading(text) {
+            const o = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').innerText = text || 'Đang tải…';
+            o.classList.remove('hidden'); o.classList.add('flex');
+        }
+        function hideLoading() {
+            const o = document.getElementById('loadingOverlay');
+            o.classList.add('hidden'); o.classList.remove('flex');
+        }
+        function showError(msg) {
+            document.getElementById('errorToastMsg').innerText = msg;
+            const t = document.getElementById('errorToast');
+            t.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+            clearTimeout(window.__errTimer);
+            window.__errTimer = setTimeout(() => t.classList.add('hidden'), 9000);
+        }
+        function openConfig() {
+            showError('Nguồn dữ liệu được quản lý tập trung. Vui lòng liên hệ quản trị viên nếu cần thay đổi.');
+        }
+        function closeConfig() {
+            const m = document.getElementById('configModal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+        }
+        function saveConfig() {
+            closeConfig();
+        }
+
+        window.onload = function() {
+            lucide.createIcons();
+            reloadData(false);
+        };
+    </script>
+<script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
+<script defer src="/assets/dashboard-data-privacy.js?v=20261015-1"></script>
+</body>
+</html>

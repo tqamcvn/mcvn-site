@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
+<!-- TQA-AUTH-GUARD -->
+<script>document.documentElement.style.visibility="hidden";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function(){
+  var U="https://ytbcydursrpjqnaalhxc.supabase.co", K="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0YmN5ZHVyc3JwanFuYWFsaHhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwOTY1NjAsImV4cCI6MjEwMTY3MjU2MH0.Xuyiz-gRxochNWbHky_diYbQAnHtEfCODKUxO4cUjuo";
+  var DOMS=["shopeemobile-external.com","shopee.com"], QA_ONLY=false;
+  function deny(){ location.replace("/"); }
+  try{
+    var sb=window.supabase.createClient(U,K);
+    var s=(await sb.auth.getSession()).data.session;
+    if(!s){ deny(); return; }
+    var email=(s.user.email||"").toLowerCase();
+    if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
+    var access=await sb.from("app_users").select("role, active").eq("email",email).maybeSingle();
+    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ deny(); return; }
+    if(QA_ONLY){
+      var role=(access.data && access.data.role)||"";
+      if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }
+    }
+    document.documentElement.style.visibility="";
+  }catch(e){ deny(); }
+})();
+</script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Repeated Agent Dashboard — MCVN QA</title>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<!-- SheetJS nạp lazy khi bấm Download (xem ensureXLSX) để không chặn tải trang -->
+<style>
+:root{
+  --bg:#0d1018;--surf:#141720;--s2:#1a1f2e;--s3:#212840;
+  --bdr:#252c40;--bdr2:#2e3750;
+  --acc:#e07d45;--blue:#5b9cf6;--green:#3ec989;--warn:#f0c94a;--red:#e05252;--pur:#a78bfa;
+  --text:#dde3f0;--t2:#7e8ba8;--t3:#49536a;
+  --r:8px;--gap:14px;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;
+}
+body.light{
+  --bg:#f0f2f7;--surf:#ffffff;--s2:#f5f6fa;--s3:#ebedf5;
+  --bdr:#d8dce8;--bdr2:#c4c9dc;
+  --text:#1a2035;--t2:#5a6480;--t3:#8a93b0;
+}
+body.light .sum-tbl tbody tr:nth-child(odd) td{background:rgba(0,0,0,.02)}
+body.light .sum-tbl tbody tr:nth-child(even) td{background:rgba(0,0,0,.05)}
+body.light .sum-tbl tr.grp0 td{background:#e8eaf6!important;color:var(--text)}
+body.light .sum-tbl tr.grp1 td{background:#eef0f9!important}
+body.light .parse-preview{background:#fff;border:1px solid var(--bdr)}
+body.light .rp-out{background:#f5f6fa}
+body.light .h-tbl tbody tr:hover td{background:#eef0f9}
+body.light table.at tbody tr:hover td{background:#eef0f9}
+.theme-toggle{background:var(--s2);border:1px solid var(--bdr);color:var(--t2);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:all .2s;flex-shrink:0}
+.theme-toggle:hover{color:var(--text);border-color:var(--bdr2)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);min-height:100vh}
+.shell{max-width:1500px;margin:0 auto;padding:18px 20px}
+
+.page-nav{display:flex;gap:2px;background:var(--surf);border:1px solid var(--bdr);border-radius:9px;padding:3px;width:fit-content}
+.pnav{background:transparent;border:none;color:var(--t2);padding:7px 18px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .14s}
+.pnav.active{background:var(--acc);color:#fff}
+.pnav:hover:not(.active){color:var(--text);background:var(--bdr)}
+.pnav.data-ready{color:var(--green)}
+.page{display:none}.page.active{display:block}
+
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.hdr h1{font-size:18px;font-weight:700;letter-spacing:-.4px}
+.hdr-meta{font-size:11px;color:var(--t2);margin-top:4px;line-height:1.5}
+.hdr-meta b{color:var(--acc)}
+.filt{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.filt select{background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;outline:none}
+.seg{display:flex;gap:2px;background:var(--s2);border-radius:7px;padding:3px;border:1px solid var(--bdr)}
+.seg-btn{background:transparent;border:none;color:var(--t2);padding:5px 11px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:500}
+.seg-btn.active{background:var(--blue);color:#fff}
+.seg-btn:hover:not(.active){color:var(--text);background:var(--bdr)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:15px 17px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.co::before{background:var(--acc)}.kpi.cb::before{background:var(--blue)}
+.kpi.cg::before{background:var(--green)}.kpi.cw::before{background:var(--warn)}
+.kpi.cd::before{background:var(--red)}.kpi.cp::before{background:var(--pur)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.9px;color:var(--t3);font-weight:700;margin-bottom:5px}
+.kpi-v{font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.kpi-s{font-size:11px;color:var(--t2);margin-top:5px}
+.kpi-d{font-size:11px;font-weight:600;margin-top:2px}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--t2)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.g3{display:grid;grid-template-columns:3fr 2fr;gap:var(--gap);margin-bottom:var(--gap)}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:17px}
+.card-t{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.card-s{font-size:10px;color:var(--t3);margin-bottom:13px}
+canvas{max-height:230px}
+.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);margin:14px 0 9px;display:flex;align-items:center;gap:8px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* SUMMARY TABLE */
+.sum-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.sum-tbl thead tr{background:#b03020}
+.sum-tbl thead th{text-align:center;padding:9px 12px;color:#fff;font-size:11px;font-weight:700;white-space:nowrap;border-right:1px solid rgba(255,255,255,.12)}
+.sum-tbl thead th:first-child{text-align:left;min-width:220px}
+.sum-tbl tbody td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;white-space:nowrap;border-right:1px solid rgba(255,255,255,.03);text-align:center}
+.sum-tbl tbody td:first-child{text-align:left}
+.sum-tbl tbody tr:nth-child(odd) td{background:rgba(255,255,255,.025)}
+.sum-tbl tbody tr:nth-child(even) td{background:rgba(0,0,0,.12)}
+.sum-tbl tr.grp0 td{background:#182038!important;font-weight:700;color:var(--text);border-bottom:1px solid var(--bdr2)}
+.sum-tbl tr.grp1 td{background:#161d30!important;font-weight:600;color:var(--t2)}
+.sum-tbl tr.grp1 td:first-child{padding-left:18px}
+.sum-tbl tr.sub td:first-child{padding-left:32px;color:var(--t3);font-style:italic}
+.sum-tbl tr.sub td{font-size:11px}
+.sum-tbl tr:hover td{filter:brightness(1.1)}
+.wow-pos{color:#2ecc71;font-weight:700}.wow-neg{color:#e74c3c;font-weight:700}
+.csat-hi{color:var(--green)}.csat-mid{color:var(--blue)}.csat-lo{color:var(--warn)}.csat-vlo{color:var(--red)}
+
+/* AGENT TABLE */
+.tbl-wrap{overflow-x:auto}
+table.at{width:100%;border-collapse:collapse;font-size:11.5px}
+table.at thead th{text-align:left;padding:8px 9px;border-bottom:1px solid var(--bdr);color:var(--t3);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;user-select:none}
+table.at thead th:hover{color:var(--t2)}
+table.at tbody td{padding:8px 9px;border-bottom:1px solid rgba(37,44,64,.4);vertical-align:middle;white-space:nowrap}
+table.at tbody tr:hover td{background:var(--s2)}
+table.at tbody tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.b1{background:rgba(91,156,246,.15);color:var(--blue)}.b2{background:rgba(240,201,74,.12);color:var(--warn)}
+.b3{background:rgba(224,125,69,.15);color:var(--acc)}.b4{background:rgba(160,78,250,.12);color:var(--pur)}
+.bnew{background:rgba(62,201,137,.12);color:var(--green)}
+.brej{background:rgba(240,201,74,.1);color:var(--warn)}
+.bcon{background:rgba(224,125,69,.1);color:var(--acc)}
+.bbA{background:rgba(62,201,137,.15);color:var(--green)}.bbB{background:rgba(91,156,246,.15);color:var(--blue)}
+.bbC{background:rgba(240,201,74,.1);color:var(--warn)}.bbD{background:rgba(224,82,82,.12);color:var(--red)}
+.bbU{background:rgba(73,83,106,.2);color:var(--t2)}
+.cbar-wrap{display:flex;align-items:center;gap:6px}
+.cbar{height:4px;border-radius:2px;flex:1;background:var(--bdr);overflow:hidden;min-width:40px}
+.cbar-fill{height:100%;border-radius:2px}
+.cnum{font-size:11px;font-weight:700;min-width:42px}
+.spark{display:flex;gap:2px;align-items:flex-end;height:24px}
+.sp-b{border-radius:2px 2px 0 0;min-width:7px}
+.edit-ta{background:transparent;border:none;color:var(--text);font-size:11px;width:100%;font-family:inherit;cursor:pointer;padding:0;resize:none;overflow:hidden;min-width:110px;line-height:1.4}
+.edit-ta:focus{outline:none;background:var(--s2);border-radius:4px;padding:2px 5px;cursor:text}
+.edit-ta::placeholder{color:var(--t3)}
+
+/* HISTORY */
+.h-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.h-tbl thead th{text-align:center;padding:7px 8px;border-bottom:1px solid var(--bdr);color:var(--t3);font-size:10px;font-weight:700;white-space:nowrap}
+.h-tbl thead th:first-child,.h-tbl thead th:nth-child(2),.h-tbl thead th:nth-child(3),.h-tbl thead th:nth-child(4){text-align:left}
+.h-tbl tbody td{padding:7px 8px;border-bottom:1px solid rgba(37,44,64,.4);text-align:center;white-space:nowrap}
+.h-tbl tbody td:first-child{text-align:left;font-weight:600}
+.h-tbl tbody td:nth-child(2),.h-tbl tbody td:nth-child(3),.h-tbl tbody td:nth-child(4){text-align:left}
+.h-tbl tbody tr:hover td{background:var(--s2)}
+.cur-wk-col{background:rgba(224,125,69,.08)!important}
+
+/* REPORT */
+.rp-block{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:17px;margin-bottom:11px}
+.rp-block h3{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:9px;border-bottom:1px solid var(--bdr);padding-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.rp-out{background:var(--s2);border-radius:7px;padding:13px 15px;font-size:12.5px;line-height:1.8;white-space:pre-wrap;word-break:break-word;min-height:50px;color:var(--text);font-family:'SF Mono',Monaco,'Courier New',monospace}
+.btn-copy-sec{background:transparent;border:none;color:var(--t3);font-size:10px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:4px}
+.btn-copy-sec:hover{color:var(--text);background:var(--bdr)}
+
+/* DATA INPUT TAB */
+.data-zone{background:var(--s2);border:2px dashed var(--bdr2);border-radius:10px;padding:16px;margin-bottom:14px;transition:border-color .2s}
+.data-zone:focus-within{border-color:var(--blue)}
+.data-zone label{font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.data-zone textarea{width:100%;background:var(--surf);border:1px solid var(--bdr);color:var(--text);font-family:'SF Mono',Monaco,monospace;font-size:11px;border-radius:6px;padding:10px 12px;outline:none;resize:vertical;line-height:1.5}
+.data-zone textarea:focus{border-color:var(--blue)}
+.data-zone .hint{font-size:10px;color:var(--t3);margin-top:6px;line-height:1.5}
+.parse-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:7px;font-size:12px;font-weight:600;margin-bottom:12px}
+.parse-status.ok{background:rgba(62,201,137,.1);border:1px solid rgba(62,201,137,.3);color:var(--green)}
+.parse-status.err{background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+.parse-status.idle{background:var(--s2);border:1px solid var(--bdr);color:var(--t2)}
+.parse-preview{background:var(--s2);border-radius:7px;padding:12px 14px;font-size:11px;color:var(--t2);max-height:180px;overflow-y:auto;font-family:monospace;line-height:1.6}
+.data-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* BTNS */
+.btn{padding:7px 16px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .14s}
+.btn-acc{background:var(--acc);color:#fff}.btn-acc:hover{background:#c86a35}
+.btn-ghost{background:var(--s2);color:var(--t2);border:1px solid var(--bdr)}.btn-ghost:hover{color:var(--text);border-color:var(--bdr2)}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{background:#4a87e0}
+
+.copy-tbl-btn{background:#b03020;border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:700}
+.copy-tbl-btn:hover{background:#901f10}
+.dev-notice{background:var(--s2);border:1px dashed var(--bdr2);border-radius:8px;padding:24px;text-align:center;color:var(--t3)}
+.dev-notice .icon{font-size:26px;margin-bottom:8px}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--t3)}
+.empty-state .icon{font-size:40px;margin-bottom:14px}
+.empty-state p{font-size:13px;line-height:1.6}
+.empty-state b{color:var(--t2)}
+
+.srch{background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none}
+.btn-dl{background:var(--acc);border:1px solid var(--acc);color:#fff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.btn-dl:hover{opacity:.85}
+.srch:focus{border-color:var(--blue)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--green);color:#000;font-size:11px;font-weight:700;padding:8px 16px;border-radius:8px;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.footer{font-size:10px;color:var(--t3);margin-top:18px;padding-top:11px;border-top:1px solid var(--bdr);display:flex;justify-content:space-between}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+@media(max-width:900px){.g2,.g3,.data-col{grid-template-columns:1fr}.kpi-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script>
+/* Đồng bộ sáng/tối theo dashboard: bấm hộ nút theme gốc của trang */
+(function(){
+  function apply(t){
+    var wantLight = (t === 'light');
+    var isLight = document.body && document.body.classList.contains('light');
+    if (document.body && wantLight !== isLight && typeof toggleTheme === 'function') toggleTheme();
+  }
+  function initApply(){ try { var p = new URLSearchParams(location.search).get('theme'); if (p) apply(p); } catch(e){} }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initApply); else initApply();
+  window.addEventListener('message', function(e){ if (e.data && e.data.type === 'tqa-theme') apply(e.data.theme); });
+})();
+</script>
+<script src="/assets/tqa-i18n.js" defer></script>
+</head>
+<body>
+<div class="shell">
+
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+<div class="page-nav">
+  <button class="pnav active" id="nav-dashboard" onclick="showPage('dashboard',this)">Dashboard</button>
+  <button class="pnav" id="nav-history" onclick="showPage('history',this)">CSAT History</button>
+  <button class="pnav" id="nav-report" onclick="showPage('report',this)">Report</button>
+  <button class="pnav" id="nav-quarterly" onclick="showPage('quarterly',this)">Quarterly</button>
+  <button class="pnav" id="nav-treatment" onclick="showPage('treatment',this)">Treatment tháng</button>
+</div>
+<button class="theme-toggle" onclick="autoLoadData()" id="reload-btn" title="Tải lại data từ Google Sheet" style="font-size:15px">⟳</button>
+<span id="load-status" style="font-size:11px;color:var(--t2)"></span>
+<button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Chuyển sáng/tối">🌙</button>
+<div style="position:relative;display:inline-block">
+  <button class="theme-toggle" onclick="toggleGuide()" title="Hướng dẫn nhanh" style="font-size:13px;font-weight:700">?</button>
+  <div id="guide-tooltip" style="display:none;position:absolute;top:38px;left:50%;transform:translateX(-50%);background:var(--surf);border:1px solid var(--bdr2);border-radius:10px;padding:16px 18px;width:340px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:12px;line-height:1.8;color:var(--t2)">
+    <div style="font-weight:700;color:var(--text);margin-bottom:10px;font-size:13px">Hướng dẫn nhanh</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><span style="color:var(--green);font-weight:600">1. Tự động</span> — Data tự kéo từ Google Sheet khi mở trang. Bấm ⟳ để tải lại (cần đăng nhập Shopee).</div>
+      <div><span style="color:var(--blue);font-weight:600">2. Dashboard</span> — KPI, chart, bảng agent. Nhập Root Cause trực tiếp vào ô.</div>
+      <div><span style="color:var(--acc);font-weight:600">3. Report</span> — Text auto-generate, copy từng phần hoặc copy tất cả.</div>
+      <div style="margin-top:6px;padding:8px;background:rgba(240,201,74,.08);border-radius:6px;color:var(--warn);font-size:11px"><b>⚠ Tuần mới:</b> F5 trang trước khi paste data mới.</div>
+      <div style="font-size:11px;color:var(--t3)">WoW cần 2 tuần trong File 1 hoặc có File 2 (CSAT Weekly).</div>
+    </div>
+    <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:10px;height:10px;background:var(--surf);border-left:1px solid var(--bdr2);border-top:1px solid var(--bdr2);transform:translateX(-50%) rotate(45deg)"></div>
+  </div>
+</div>
+</div>
+
+<!-- =================== DATA (ẩn — data kéo tự động từ Google Sheet; textarea giữ làm buffer) =================== -->
+<div id="page-data" class="page">
+  <div class="hdr">
+    <div><h1>Nhập Data</h1>
+    <div class="hdr-meta">Paste data từ Google Sheets vào đây · Dashboard tự động tính toán khi bấm <b>Parse &amp; Apply</b></div></div>
+  </div>
+
+  <div id="parse-status" class="parse-status idle">Chưa có data. Paste và Parse để bắt đầu.</div>
+
+  <div class="data-col">
+    <!-- FILE 1: AGENT LIST WEEKLY -->
+    <div>
+      <div class="data-zone">
+        <label>File 1 — Agent List Weekly (Sheet: Agent List Weekly)</label>
+        <textarea id="input-agent" rows="14" placeholder="Copy toàn bộ vùng dữ liệu từ cột A đến M của sheet Agent List Weekly và paste vào đây.
+
+Cột cần có: Week | Date | Agent Name | Agent Email | Channel | Team | Usertype | CSAT WTD | Repeated | Bottom Monthly | Treatment | Repeats weekly | Team
+
+Chỉ lấy rows có cột Repeated là số (0, 1, 2, 3) — bỏ qua dòng có '-'"></textarea>
+        <div class="hint">Format: Tab-separated (copy thẳng từ Google Sheets). Cần có header row.</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input id="sheet-url" type="text" spellcheck="false" placeholder="Dán URL Web App (Apps Script) — dùng chung cho cả 2 file, lưu ở máy bạn, KHÔNG upload lên GitHub"
+            style="flex:1;min-width:220px;font-size:11px;padding:6px 8px;border-radius:6px;border:1px solid var(--bdr);background:var(--s2);color:var(--text)">
+          <button class="btn btn-blue" style="font-size:11px;padding:6px 12px" onclick="fetchFromSheet('agent')">⟳ Kéo Agent List</button>
+        </div>
+        <div class="hint" style="margin-top:4px">Kéo trực tiếp vùng A6:M sheet "3. Agent list Weekly" (cần deploy Apps Script — xem hướng dẫn). URL dùng chung cho cả File 2, chỉ lưu trên trình duyệt này.</div>
+      </div>
+      <div id="preview-agent" class="parse-preview" style="display:none"></div>
+    </div>
+
+    <!-- FILE 2: CSAT WEEKLY -->
+    <div>
+      <div class="data-zone">
+        <label>File 2 — CSAT Weekly (Sheet: CSAT_Weekly, cột C:S)</label>
+        <textarea id="input-csat" rows="14" placeholder="Copy vùng dữ liệu từ sheet CSAT_Weekly (cột C đến S).
+
+Cột cần có: Agent name | Agent email | BPO | Team | Full Team | Seniority | Bucket | Rating | W_current | W_prev1 | W_prev2 | W_prev3
+
+Row 1-5 có thể là header/meta — script sẽ tự detect header dòng có chứa 'Agent name'."></textarea>
+        <div class="hint">Format: Tab-separated. Bao gồm header row có ngày (7/13/2026, 7/6/2026...) để xác định tuần.</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-blue" style="font-size:11px;padding:6px 12px" onclick="fetchFromSheet('csat')">⟳ Kéo CSAT Weekly</button>
+          <span class="hint" style="margin:0">Dùng chung URL Web App đã nhập ở File 1 · vùng C1:S tab "CSAT_Weekly" (gồm cả dòng ngày & W29/W28…)</span>
+        </div>
+      </div>
+      <div id="preview-csat" class="parse-preview" style="display:none"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-blue" onclick="parseAndApply()">Parse &amp; Apply Data</button>
+    <button class="btn btn-ghost" onclick="loadSampleData()">Load Sample Data (W28)</button>
+    <button class="btn btn-ghost" onclick="clearData()">Clear</button>
+    <span id="parse-info" style="font-size:11px;color:var(--t2)"></span>
+  </div>
+
+  <!-- F5 NOTICE -->
+  <div style="background:rgba(240,201,74,.08);border:1px solid rgba(240,201,74,.25);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:var(--warn);display:flex;gap:10px;align-items:flex-start">
+    <span style="font-size:16px;flex-shrink:0">⚠</span>
+    <div><b>Lưu ý quan trọng:</b> Mỗi khi muốn nhập data mới cho tuần tiếp theo, cần <b>F5 (reload trang)</b> trước để reset toàn bộ trạng thái. Dashboard không lưu data giữa các phiên.</div>
+  </div>
+
+  <!-- BEGINNER GUIDE -->
+  <div class="card">
+    <div class="card-t" style="margin-bottom:14px">Hướng dẫn sử dụng — Dành cho người mới</div>
+
+    <!-- QUICK START -->
+    <div style="background:var(--s2);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Quickstart — Chạy thử ngay</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        Nếu chưa có data thật, bấm <b style="color:var(--text)">Load Sample Data (W28)</b> ở trên → rồi bấm <b style="color:var(--text)">Parse &amp; Apply</b> → Dashboard sẽ render ngay với data mẫu W28.
+      </div>
+    </div>
+
+    <!-- STEP BY STEP -->
+    <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Quy trình nhập data thực mỗi tuần</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;font-size:12px;line-height:1.85;color:var(--t2)">
+
+      <div>
+        <div style="color:var(--green);font-weight:700;margin-bottom:8px">Bước 1 — File 1: Agent List Weekly</div>
+        <ol style="padding-left:16px;display:flex;flex-direction:column;gap:4px">
+          <li>Mở Google Sheets → sheet <b style="color:var(--text)">Agent List Weekly</b></li>
+          <li>Click vào ô <b>A1</b> (cột Week)</li>
+          <li>Bôi đen toàn bộ vùng data từ <b>A1 đến M cuối</b><br><span style="color:var(--t3);font-size:11px">(Ctrl+Shift+End để chọn đến ô cuối cùng)</span></li>
+          <li><b>Ctrl+C</b> để copy</li>
+          <li>Paste vào ô <b>bên trái</b> trong trang này</li>
+        </ol>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--surf);border-radius:6px;font-size:11px;color:var(--t3)">
+          Script chỉ lấy dòng có cột <b>Repeated = số</b> (0, 1, 2, 3).<br>
+          Dòng có Repeated = "-" sẽ tự bỏ qua.<br>
+          Nên paste nhiều tuần để có Trend chart.
+        </div>
+      </div>
+
+      <div>
+        <div style="color:var(--blue);font-weight:700;margin-bottom:8px">Bước 2 — File 2: CSAT Weekly</div>
+        <ol style="padding-left:16px;display:flex;flex-direction:column;gap:4px">
+          <li>Cùng file Sheets → sheet <b style="color:var(--text)">CSAT_Weekly</b></li>
+          <li>Click vào ô <b>C1</b> (cột Agent name)</li>
+          <li>Bôi đen từ <b>C1 đến S cuối</b><br><span style="color:var(--t3);font-size:11px">(Bao gồm cả dòng header ngày tháng và dòng W29/W28...)</span></li>
+          <li><b>Ctrl+C</b> để copy</li>
+          <li>Paste vào ô <b>bên phải</b> trong trang này</li>
+        </ol>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--surf);border-radius:6px;font-size:11px;color:var(--t3)">
+          Script tự detect dòng chứa ngày (7/13/2026...) để xác định tuần.<br>
+          CSAT map theo email → cần email khớp với File 1.<br>
+          File 2 có thể paste không cần File 1 (dùng riêng cho tab History).
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;border-top:1px solid var(--bdr);padding-top:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Bước 3 — Parse &amp; xem kết quả</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;color:var(--t2)">
+        <div style="background:var(--s2);border-radius:7px;padding:10px 12px">
+          <div style="color:var(--acc);font-weight:700;margin-bottom:4px">Parse &amp; Apply</div>
+          Bấm nút xanh để parse. Status bar sẽ hiển thị số rows đã đọc được. Nếu lỗi sẽ thấy thông báo đỏ kèm nguyên nhân.
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:10px 12px">
+          <div style="color:var(--acc);font-weight:700;margin-bottom:4px">Dashboard</div>
+          Sau khi parse thành công, chuyển sang tab <b>Dashboard</b> để xem KPI, chart, và bảng agent detail. Có thể nhập Root Cause trực tiếp vào bảng.
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:10px 12px">
+          <div style="color:var(--acc);font-weight:700;margin-bottom:4px">Report</div>
+          Tab <b>Report</b> auto-generate text theo format chuẩn IH. Có nút Copy từng section hoặc Copy toàn bộ để paste vào chat/email.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(224,82,82,.07);border:1px solid rgba(224,82,82,.2);border-radius:7px;font-size:11px;color:var(--t2)">
+      <b style="color:var(--red)">Tuần mới:</b> F5 trang trước khi paste data mới. Data chỉ tồn tại trong phiên làm việc hiện tại, đóng tab là mất.
+    </div>
+  </div>
+</div>
+
+<!-- =================== DASHBOARD =================== -->
+<div id="page-dashboard" class="page active">
+  <div class="hdr">
+    <div><h1>Repeated Agent — Rolling L6W</h1>
+    <div class="hdr-meta" id="dash-meta">Đang tải data từ Google Sheet…</div></div>
+    <div class="filt">
+      <div class="seg">
+        <button class="seg-btn active" onclick="setTab('all',this)">All</button>
+        <button class="seg-btn" onclick="setTab('Chat',this)">Chat</button>
+        <button class="seg-btn" onclick="setTab('Call',this)">Call</button>
+        <button class="seg-btn" onclick="setTab('Multi',this)">Multi</button>
+      </div>
+      <select id="filter-ut" onchange="applyFilters()">
+        <option value="all">All Usertype</option>
+        <option value="Buyer">Buyer</option>
+        <option value="Seller">Seller</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="dash-empty" class="empty-state">
+    <div class="icon">📋</div>
+    <p>Đang tải data từ Google Sheet…<br>Nếu lâu không hiện, bấm nút <b>⟳</b> trên thanh menu (cần đăng nhập tài khoản Shopee).</p>
+  </div>
+
+  <div id="dash-content" style="display:none">
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi co"><div class="kpi-l">Total Repeated</div><div class="kpi-v" id="k-total">—</div><div class="kpi-s">agents trong L6W list</div><div class="kpi-d" id="k-total-d">—</div></div>
+      <div class="kpi cb"><div class="kpi-l">Avg CSAT Repeated</div><div class="kpi-v" id="k-csat">—</div><div class="kpi-s" id="k-csat-s">tuần hiện tại</div><div class="kpi-d" id="k-csat-d">—</div></div>
+      <div class="kpi cg"><div class="kpi-l">Tăng WoW</div><div class="kpi-v pos" id="k-up">—</div><div class="kpi-s" id="k-up-s">—</div><div class="kpi-d pos" id="k-up-d">—</div></div>
+      <div class="kpi cd"><div class="kpi-l">Giảm WoW</div><div class="kpi-v neg" id="k-down">—</div><div class="kpi-s" id="k-down-s">—</div><div class="kpi-d neg" id="k-down-d">—</div></div>
+      <div class="kpi cw"><div class="kpi-l">Lần 2+</div><div class="kpi-v" id="k-l2">—</div><div class="kpi-s">escalation risk</div><div class="kpi-d neu" id="k-l2-d">—</div></div>
+      <div class="kpi cp"><div class="kpi-l">Exit tuần trước</div><div class="kpi-v" id="k-exit">—</div><div class="kpi-s">agents thoát L6W</div><div class="kpi-d pos" id="k-exit-d">—</div></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="slbl">Trend & Distribution</div>
+    <div class="g3">
+      <div class="card"><div class="card-t" id="wow-chart-title">CSAT WoW — Repeated Agents</div><div class="card-s">W-1 vs W hiện tại · CSAT WTD</div><canvas id="cWoW"></canvas></div>
+      <div class="card"><div class="card-t">Repeated Count — Trend</div><div class="card-s">Stacked L1/L2/L3+ · line = total</div><canvas id="cTrend"></canvas></div>
+    </div>
+
+    <!-- AGENT TABLE -->
+    <div class="slbl">Agent Detail — Current Week Repeated List</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div><div class="card-t">Danh sách Repeated · <span id="tbl-cnt" style="color:var(--acc)">—</span> agents</div><div class="card-s">Click ô Root Cause / Reason để nhập</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="srch" type="text" placeholder="Tìm agent..." oninput="filterTbl(this.value)" id="srch">
+          <button class="btn-dl" onclick="downloadTable()" title="Tải danh sách hiện tại ra file Excel">⬇ Download</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="at"><thead><tr>
+        <th onclick="srt('name')">Agent</th><th onclick="srt('full_team')">Team</th>
+        <th onclick="srt('bucket')">Bkt</th><th onclick="srt('seniority')">Seniority</th>
+        <th onclick="srt('lan')">Lần</th><th onclick="srt('movement')">Movement</th>
+        <th onclick="srt('csat_prev')">CSAT W-1</th><th onclick="srt('csat_cur')">CSAT W</th>
+        <th onclick="srt('wow')">WoW Δ</th><th>Trend</th>
+        <th onclick="srt('treatment')">Treatment</th><th onclick="srt('forecast_remove')">Forecast</th>
+        <th onclick="srt('bottom_monthly')">Bottom</th>
+        <th style="min-width:120px">Root Cause</th><th style="min-width:120px">Reason next wk</th>
+      </tr></thead><tbody id="aTbody"></tbody></table></div>
+    </div>
+    <div class="footer"><span>MCVN QA · Repeated Agent Rolling L6W</span><span id="footer-week">—</span></div>
+  </div>
+</div>
+
+<!-- =================== HISTORY =================== -->
+<div id="page-history" class="page">
+  <div class="hdr">
+    <div><h1>CSAT History</h1><div class="hdr-meta" id="hist-meta">Chưa có data CSAT Weekly</div></div>
+    <div class="filt">
+      <input class="srch" type="text" placeholder="Tìm agent..." oninput="filterH(this.value)" id="srch-h">
+      <select id="h-bkt" onchange="filterH(document.getElementById('srch-h').value)">
+        <option value="all">All Bucket</option>
+        <option value="A">A</option><option value="B">B</option>
+        <option value="C">C</option><option value="D">D</option><option value="U">U</option>
+      </select>
+      <button class="btn-dl" onclick="downloadHistory()" title="Tải bảng CSAT History ra file Excel">⬇ Download</button>
+    </div>
+  </div>
+  <div id="hist-empty" class="empty-state"><div class="icon">📊</div><p>Chưa có data CSAT Weekly.<br>Paste File 2 trong tab <b>Nhập Data</b>.</p></div>
+  <div id="hist-content" style="display:none">
+    <div class="card" style="margin-bottom:var(--gap)">
+      <div class="card-t">CSAT Trend — Multi-line</div><div class="card-s">Agents trong Repeated list · màu = agent</div>
+      <canvas id="cHistory" style="max-height:300px"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-t">Full History Table</div><div class="card-s">Cột W hiện tại được highlight · màu ô = CSAT level</div>
+      <div class="tbl-wrap"><table class="h-tbl"><thead id="h-thead"></thead><tbody id="hTbody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== REPORT =================== -->
+<div id="page-report" class="page">
+  <div style="max-width:960px">
+    <div class="hdr">
+      <div><h1>Report</h1><div class="hdr-meta" id="rp-meta">Action Update · <b id="rp-week-lbl">—</b></div></div>
+      <button class="btn btn-acc" onclick="copyFullReport()">Copy toàn bộ</button>
+    </div>
+    <div id="rp-empty" class="empty-state"><div class="icon">📝</div><p>Chưa có data.<br>Nhập data và Parse để generate report.</p></div>
+    <div id="rp-content" style="display:none">
+      <div class="rp-block">
+        <h3>Bảng tổng hợp chỉ số <button class="btn-copy-sec" onclick="copyRpTable()">copy bảng</button></h3>
+        <div class="tbl-wrap" style="margin-top:4px">
+          <table class="sum-tbl"><thead><tr>
+            <th style="text-align:left;min-width:230px">Repeated Agents</th>
+            <th>Agents</th><th>WoW</th>
+            <th id="rp-sh-w1">W28</th><th id="rp-sh-w2">W27</th><th id="rp-sh-w3">W26</th><th id="rp-sh-w4">W25</th><th id="rp-sh-w5">W24</th><th id="rp-sh-w6">W23</th>
+          </tr></thead><tbody id="rp-sum-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="rp-block"><h3>1. Overall Repeated List Performance WoW <button class="btn-copy-sec" onclick="copySection('rp-1')">copy</button></h3><div class="rp-out" id="rp-1"></div></div>
+      <div class="rp-block"><h3>2. Repeated Next Week <button class="btn-copy-sec" onclick="copySection('rp-2')">copy</button></h3><div class="rp-out" id="rp-2"></div></div>
+      <div class="rp-block"><h3>3. Lý do giảm / Agent Repeated Next Week</h3><div class="dev-notice"><div class="icon">🔧</div><div style="font-size:12px;font-weight:600;color:var(--t2)">Tính năng đang phát triển</div></div></div>
+      <div class="rp-block"><h3>4. Taken Action</h3><div class="dev-notice"><div class="icon">🔧</div><div style="font-size:12px;font-weight:600;color:var(--t2)">Tính năng đang phát triển</div></div></div>
+      <div class="rp-block"><h3>5. Next Action</h3><div class="dev-notice"><div class="icon">🔧</div><div style="font-size:12px;font-weight:600;color:var(--t2)">Tính năng đang phát triển</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-quarterly" class="page">
+  <div style="max-width:1000px">
+    <div class="hdr"><div><h1>Quarterly Report</h1><div class="hdr-meta">CSAT Quý = tổng Good / tổng (Good + Bad) của 3 tháng đã chọn</div></div><button class="btn btn-ghost" onclick="loadQuarterly(true)">⟳ Tải lại</button></div>
+    <div id="q-months" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px"></div>
+    <p id="q-status" class="hint" role="status"></p>
+    <div class="rp-block" id="q-content" hidden>
+      <h3>Bảng tổng hợp chỉ số <button class="btn-copy-sec" onclick="copyQuarterly()">copy bảng</button></h3>
+      <div class="tbl-wrap"><table class="sum-tbl" id="q-table"></table></div>
+      <p class="hint" id="q-note"></p>
+      <p class="hint" id="q-stamp"></p>
+    </div>
+  </div>
+</div>
+
+<div id="page-treatment" class="page">
+  <div style="max-width:1000px">
+    <div class="hdr">
+      <div><h1>Treatment vs Non-Treatment theo tháng</h1>
+        <div class="hdr-meta">Đếm số record · Có action = agent nằm trong Agent List tháng đó · Không action = ngoài list</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="trt-month" onchange="renderTreatment()" style="background:var(--s2);border:1px solid var(--bdr);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;font-weight:600"></select>
+        <span id="trt-cmp" style="font-size:11px;color:var(--t3)"></span>
+        <button class="btn btn-ghost" onclick="loadTreatment(true)">⟳ Tải lại</button>
+      </div>
+    </div>
+    <div id="trt-empty" class="empty-state"><div class="icon">📊</div><p id="trt-empty-msg">Đang tải dữ liệu tháng…</p></div>
+    <div id="trt-content" style="display:none">
+      <div class="tbl-wrap"><table class="sum-tbl" id="trt-tbl"></table></div>
+      <div id="trt-coverage" style="color:var(--warn);font-size:11px;margin-top:10px"></div>
+      <p id="trt-stamp" style="font-size:11px;color:var(--t3);margin-top:8px"></p>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast">Đã copy!</div>
+
+<script>
+// ================================================================
+// GLOBAL STATE
+// ================================================================
+let G = {
+  agentSnaps: [],    // parsed Agent List Weekly rows (Repeated = numeric)
+  csatMap: {},       // email -> {w29:x, w28:x, w27:x, w26:x, w25:x, bucket, seniority, full_team}
+  csatWeeks: [],     // ordered week labels e.g. ['W29','W28','W27','W26']
+  csatDates: [],     // ordered date strings
+  curWeek: null,     // current week number (highest in agentSnaps)
+  prevWeek: null,
+  snapshots: {},     // week -> [rows]
+  curAgents: [],     // agents in curWeek snapshot (Repeated>=1 = repeated list)
+  prevAgents: [],
+  ready: false,
+};
+
+let activeTab='all', activeUT='all';
+let sortCol='csat_cur', sortDir='asc';
+let lastTableRows=[];
+let lastHistory={wks:[],agents:[]};
+let charts={};
+
+// ================================================================
+// UTILITIES
+// ================================================================
+function toast(m='Đã copy!'){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200);}
+function copyText(s){navigator.clipboard.writeText(s).then(()=>toast()).catch(()=>{const ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast();});}
+function copySection(id){copyText(document.getElementById(id)?.textContent||'');}
+
+let _guideOpen=false;
+function toggleGuide(){
+  _guideOpen=!_guideOpen;
+  document.getElementById('guide-tooltip').style.display=_guideOpen?'block':'none';
+}
+document.addEventListener('click',e=>{
+  if(_guideOpen&&!e.target.closest('#guide-tooltip')&&!e.target.closest('[onclick="toggleGuide()"]')){
+    _guideOpen=false;
+    document.getElementById('guide-tooltip').style.display='none';
+  }
+});
+
+let _dark=true;
+function toggleTheme(){
+  _dark=!_dark;
+  document.body.classList.toggle('light',!_dark);
+  document.getElementById('theme-btn').textContent=_dark?'🌙':'☀️';
+}
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.pnav').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='treatment') loadTreatment();
+  if(id==='quarterly') loadQuarterly();
+}
+function cc(v){if(v==null||isNaN(v))return'#5b9cf6';if(v>=90)return'#3ec989';if(v>=80)return'#5b9cf6';if(v>=70)return'#f0c94a';return'#e05252';}
+function fmt(v,d=1){return v!=null&&!isNaN(v)?v.toFixed(d)+'%':'—';}
+function parsePct(s){if(!s||s===''||s==='-'||s==='#N/A')return null;const n=parseFloat(s.toString().replace('%','').trim());return isNaN(n)?null:n;}
+function parseRepeat(s){if(!s||s===''||s==='-')return null;const n=parseInt(s);return isNaN(n)?null:n;}
+
+// ================================================================
+// PARSE FILE 1: AGENT LIST WEEKLY
+// ================================================================
+// Suy ra kênh (Chat/Call/Multi) từ mã team: CH.*→Chat, CA.*→Call, MT→Multi
+function chanFromTeam(code){
+  var c=(code||'').trim().toUpperCase();
+  if(c.indexOf('CA')===0) return 'Call';
+  if(c.indexOf('MT')===0) return 'Multi';
+  if(c.indexOf('CH')===0) return 'Chat';
+  return '';
+}
+function parseAgentList(raw){
+  const lines = raw.trim().split('\n').map(l=>l.split('\t'));
+  if(!lines.length) return {rows:[],error:'Empty'};
+
+  // Find header row
+  let hdrIdx = lines.findIndex(r=>r.some(c=>c.toLowerCase().includes('week')&&c.toLowerCase().includes('week'))||r[0]?.toLowerCase()==='week');
+  if(hdrIdx<0) hdrIdx=0; // assume first row is header
+
+  const hdr = lines[hdrIdx].map(c=>c.trim().toLowerCase());
+  const colW    = hdr.findIndex(h=>h==='week');
+  const colDate = hdr.findIndex(h=>h==='date');
+  const colName = hdr.findIndex(h=>h==='agent name');
+  const colEmail= hdr.findIndex(h=>h==='agent email');
+  const colChan = hdr.findIndex(h=>h==='channel');
+  const colTeam = hdr.findIndex(h=>h==='team'&&hdr.indexOf(h)===hdr.lastIndexOf(h)||h==='team');
+  const colUT   = hdr.findIndex(h=>h==='usertype');
+  const colCSAT = hdr.findIndex(h=>h==='csat wtd');
+  const colRep  = hdr.findIndex(h=>h==='repeated');
+  const colBot  = hdr.findIndex(h=>h==='bottom monthly');
+  const colTreat= hdr.findIndex(h=>h==='treatment');
+  const colRepW = hdr.findIndex(h=>h==='repeats weekly');
+  const colTeamL= hdr.lastIndexOf(hdr.find(h=>h==='team'));
+
+  if(colW<0||colRep<0||colCSAT<0) return {rows:[],error:'Không tìm thấy cột Week, Repeated hoặc CSAT WTD'};
+
+  const rows=[];
+  for(let i=hdrIdx+1;i<lines.length;i++){
+    const r=lines[i];
+    if(!r||r.every(c=>!c.trim()))continue;
+    const rep=parseRepeat(r[colRep]);
+    if(rep===null)continue; // skip "-" rows
+    const week=parseInt(r[colW]);
+    if(isNaN(week))continue;
+    rows.push({
+      week, date:r[colDate]?.trim()||'',
+      name:(r[colName]||'').trim().replace(/^03\.\s*/,'').trim(),
+      email:(r[colEmail]||'').trim().toLowerCase(),
+      channel:(r[colChan]||'').trim(),
+      team:(r[colTeam]||'').trim(),
+      usertype:(r[colUT]||'').trim(),
+      csat_wtd:parsePct(r[colCSAT]),
+      repeated:rep,
+      bottom_monthly:(r[colBot]||'').trim(),
+      treatment:(r[colTreat]||'').trim()||'—',
+      repeats_weekly:(r[colRepW]||'').trim(),
+      team_label: chanFromTeam(r[colTeam]) || (r[colTeamL]||'').trim() || 'Chat',
+      root_cause:'', reason_next:''
+    });
+  }
+  return {rows, error:null};
+}
+
+// ================================================================
+// PARSE FILE 2: CSAT WEEKLY
+// ================================================================
+function parseCsatWeekly(raw){
+  if(!raw.trim()) return {map:{},weeks:[],dates:[],error:null};
+  const lines = raw.trim().split('\n').map(l=>l.split('\t'));
+
+  // Find date header row (contains date patterns like 7/13/2026)
+  let dateRowIdx = -1;
+  for(let i=0;i<Math.min(10,lines.length);i++){
+    if(lines[i].some(c=>/\d+\/\d+\/\d{4}/.test(c)||/\d{4}-\d{2}-\d{2}/.test(c))){
+      dateRowIdx=i; break;
+    }
+  }
+
+  // Find agent name header row
+  let hdrIdx=-1;
+  for(let i=0;i<Math.min(12,lines.length);i++){
+    if(lines[i].some(c=>c.toLowerCase().includes('agent name')||c.toLowerCase().includes('agent email'))){
+      hdrIdx=i; break;
+    }
+  }
+  if(hdrIdx<0) return {map:{},weeks:[],dates:[],error:'Không tìm thấy header Agent name'};
+
+  const hdr = lines[hdrIdx].map(c=>c.trim().toLowerCase());
+  const colName   = hdr.findIndex(h=>h.includes('agent name')||h==='agent name');
+  const colEmail  = hdr.findIndex(h=>h.includes('agent email')||h==='agent email');
+  const colFTeam  = hdr.findIndex(h=>h==='full team'||h.includes('full team'));
+  const colSen    = hdr.findIndex(h=>h.includes('seniority')||h==='agent seniority');
+  const colBucket = hdr.findIndex(h=>h==='bucket');
+
+  // CSAT columns: from "Rating" onward
+  const colRating = hdr.findIndex(h=>h==='rating');
+  const csatColStart = colRating>=0 ? colRating+1 : hdr.length;
+
+  // Get week labels from date row or week row
+  let weekLabels=[], weekDates=[];
+  if(dateRowIdx>=0){
+    for(let c=csatColStart;c<lines[dateRowIdx].length;c++){
+      const cell=lines[dateRowIdx][c]?.trim();
+      if(cell&&cell!=='') weekDates.push(cell);
+    }
+  }
+
+  // Also check for W29/W28... row
+  let weekRowIdx=-1;
+  for(let i=Math.max(0,dateRowIdx);i<hdrIdx+1;i++){
+    if(lines[i]?.some(c=>/^W\d{2}$/.test(c?.trim()))){
+      weekRowIdx=i; break;
+    }
+  }
+  if(weekRowIdx>=0){
+    for(let c=csatColStart;c<lines[weekRowIdx].length;c++){
+      const cell=lines[weekRowIdx][c]?.trim();
+      if(cell&&/^W\d{2}$/.test(cell)) weekLabels.push(cell);
+    }
+  }
+
+  // Fallback: generate W labels from dates
+  if(!weekLabels.length&&weekDates.length){
+    weekLabels = weekDates.map(d=>{
+      const dt=new Date(d);
+      if(isNaN(dt.getTime())) return d;
+      const jan1=new Date(dt.getFullYear(),0,1);
+      const wk=Math.ceil(((dt-jan1)/86400000+jan1.getDay()+1)/7);
+      return 'W'+wk;
+    });
+  }
+  if(!weekLabels.length) weekLabels=['W_cur','W_cur-1','W_cur-2','W_cur-3'];
+
+  const nWeeks = Math.min(weekLabels.length, 6);
+  const map={};
+
+  for(let i=hdrIdx+1;i<lines.length;i++){
+    const r=lines[i];
+    if(!r||r.every(c=>!c.trim()))continue;
+    const email=(r[colEmail]||'').trim().toLowerCase();
+    if(!email||email==='#n/a')continue;
+    const entry={
+      name:(r[colName]||'').trim().replace(/^03\.\s*/,'').trim(),
+      full_team:(r[colFTeam]||'').trim(),
+      seniority:(r[colSen]||'').trim(),
+      bucket:(r[colBucket]||'U').trim()||'U',
+    };
+    for(let w=0;w<nWeeks;w++){
+      entry[weekLabels[w]] = parsePct(r[csatColStart+w]);
+    }
+    map[email]=entry;
+  }
+
+  return {map, weeks:weekLabels.slice(0,nWeeks), dates:weekDates, error:null};
+}
+
+// ================================================================
+// COMPUTE: Build derived state from parsed data
+// ================================================================
+function compute(){
+  const rows = G.agentSnaps;
+  // Group by week
+  G.snapshots={};
+  rows.forEach(r=>{
+    if(!G.snapshots[r.week])G.snapshots[r.week]=[];
+    G.snapshots[r.week].push(r);
+  });
+
+  const weeks = Object.keys(G.snapshots).map(Number).sort((a,b)=>b-a);
+  G.curWeek = weeks[0]||null;   // dùng để CHỌN snapshot data (theo cột Week của Agent List)
+  G.prevWeek = weeks[1]||null;
+
+  // Tuần HIỂN THỊ (nhãn "Tuần hiện tại") lấy theo tuần CSAT mới nhất (chuẩn WEEKNUM),
+  // vì Agent List và CSAT có thể đánh số tuần khác nhau. Không ảnh hưởng logic chọn data.
+  const _wkNum = w=>{const m=/(\d+)/.exec(w||'');return m?+m[1]:null;};
+  G.dispWeek     = _wkNum(G.csatWeeks[0]) ?? G.curWeek;
+  G.dispPrevWeek = _wkNum(G.csatWeeks[1]) ?? G.prevWeek;
+
+  G.prevAgents = G.prevWeek ? (G.snapshots[G.prevWeek]||[]) : [];
+
+  // ==== Cửa sổ Rolling L6W ====
+  // Lọc theo SỐ TUẦN (tương đối với tuần mới nhất), KHÔNG theo cột Date — vì cột Date trong
+  // Agent List có thể giống nhau ở mọi dòng, khiến lọc theo ngày lọt cả tuần cũ (W20...).
+  const _dmy = s=>{const m=/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/.exec((s||'').trim());return m?new Date(+m[3],+m[2]-1,+m[1]):null;};
+  const _allDts = rows.map(r=>_dmy(r.date)).filter(Boolean).map(d=>d.getTime());
+  G.anchorDate = _allDts.length ? new Date(Math.max(..._allDts)) : null;
+  // Cửa sổ lấy THEO CSAT (số tuần thật): chỉ nhận dòng Agent List có Week nằm trong dải tuần
+  // của file CSAT (vd CSAT W25–W30 => chỉ lấy W25..W30, bỏ W23/W24).
+  G.cycleWeeks = 6;
+  const _csatNums = (G.csatWeeks||[]).map(w=>_wkNum(w)).filter(n=>n!=null);
+  let _winMin=null, _winMax=null;
+  if(_csatNums.length){
+    _winMax = Math.max(..._csatNums);
+    _winMin = Math.min(..._csatNums);
+  } else if(G.curWeek!=null){                    // fallback khi không có file CSAT
+    _winMax = G.curWeek; _winMin = G.curWeek-(G.cycleWeeks-1);
+  }
+  G.winMin=_winMin; G.winMax=_winMax;
+  G.windowWeeks = Object.keys(G.snapshots).map(Number)
+    .filter(w=>_winMin==null || (w>=_winMin && w<=_winMax)).sort((a,b)=>b-a);
+
+  // CS của cả chu kỳ: gộp MỌI tuần trong cửa sổ (không chỉ tuần mới nhất), distinct theo email;
+  // mỗi CS lấy dòng ở lần xuất hiện GẦN NHẤT (= trạng thái Lần hiện tại).
+  const _inWin = r => (_winMin==null) ? true : (r.week>=_winMin && r.week<=_winMax);
+  const _byEmail = {};
+  rows.forEach(r=>{ if(!r.email||!_inWin(r)) return; const p=_byEmail[r.email]; if(!p || r.week>p.week) _byEmail[r.email]=r; });
+  G.curAgents = Object.values(_byEmail);
+
+  // Enrich curAgents with CSAT Weekly data
+  G.curAgents.forEach(a=>{
+    const cs = G.csatMap[a.email]||{};
+    a.full_team = cs.full_team||a.team;
+    a.bucket = cs.bucket||'U';
+    a.seniority = cs.seniority||'—';
+
+    const wCur  = G.csatWeeks[0]||null; // e.g. 'W29'
+    const wPrev = G.csatWeeks[1]||null; // e.g. 'W28'
+
+    // CSAT from File 2 (CSAT Weekly)
+    const csatCurW2  = (wCur  && cs[wCur]  != null) ? cs[wCur]  : null;
+    const csatPrevW2 = (wPrev && cs[wPrev] != null) ? cs[wPrev] : null;
+
+    // Fallback: File 1 CSAT WTD for current week snapshot
+    const csatCurW1  = a.csat_wtd ?? null;
+    // Fallback prev: same agent in prevWeek File1 snapshot
+    const prevSnap   = G.prevAgents.find(p=>p.email===a.email);
+    const csatPrevW1 = prevSnap?.csat_wtd ?? null;
+
+    // Priority: File2 > File1
+    a.csat_cur  = csatCurW2  ?? csatCurW1;
+    a.csat_prev = csatPrevW2 ?? csatPrevW1;
+
+    // WoW only if both sides exist AND they come from comparable sources
+    // If both from File2: clean comparison across weeks
+    // If cur from File2 + prev from File1: still valid (same metric)
+    // If both from File1: valid only if prevWeek exists
+    if(a.csat_cur!=null && a.csat_prev!=null){
+      // Don't compute WoW if cur and prev are literally the same snapshot value
+      // (would happen if no prevWeek and we accidentally use same data)
+      const sameSource = !G.prevWeek && csatPrevW2==null && csatPrevW1==null;
+      a.wow = sameSource ? null : +(a.csat_cur - a.csat_prev).toFixed(2);
+    } else {
+      a.wow = null;
+    }
+
+    // forecast
+    const _repRows = rows.filter(r=>r.email===a.email&&r.repeated>=1).sort((x,y)=>x.week-y.week);
+    const firstRepWk = _repRows[0]?.week || a.week;
+    a.first_repeat_week = firstRepWk;
+    a.first_repeat_date = _repRows[0]?.date || a.date;
+    // Trong chu kỳ 46 ngày? (ngày bắt đầu lặp cách mốc hiện tại <= 46 ngày)
+    const _frd=_dmy(a.first_repeat_date);
+    a.in_cycle = (!G.anchorDate||!_frd) ? true : ((G.anchorDate-_frd)/86400000 <= G.cycleDays);
+    a.cycle_end = firstRepWk+5;
+    a.forecast_remove = a.cycle_end > G.curWeek ? 'W'+a.cycle_end : 'Cycle đủ 6W';
+    // movement
+    const inPrev = G.prevAgents.some(p=>p.email===a.email&&p.repeated>=1);
+    a.movement = inPrev ? 'Consecutive' : rows.some(r=>r.email===a.email&&r.repeated>=1&&r.week<G.curWeek) ? 'Rejoin' : 'New Join';
+    // csat history sparkline
+    a.csat_history = G.csatWeeks.map(w=>G.csatMap[a.email]?.[w]??null);
+  });
+  // curAgents đã là toàn bộ CS distinct trong cửa sổ 46 ngày (không lọc thêm).
+}
+
+// ================================================================
+// PARSE & APPLY (main entry)
+// ================================================================
+function parseAndApply(){
+  const rawAgent = document.getElementById('input-agent').value;
+  const rawCsat  = document.getElementById('input-csat').value;
+
+  const statusEl = document.getElementById('parse-status');
+  statusEl.className='parse-status idle';
+  statusEl.textContent='Đang parse...';
+
+  try{
+    // Parse agent list
+    const r1 = parseAgentList(rawAgent);
+    if(r1.error&&!r1.rows.length) throw new Error('Agent List: '+r1.error);
+
+    // Parse CSAT weekly
+    const r2 = parseCsatWeekly(rawCsat);
+    if(r2.error) throw new Error('CSAT Weekly: '+r2.error);
+
+    G.agentSnaps = r1.rows;
+    G.csatMap    = r2.map;
+    G.csatWeeks  = r2.weeks;
+    G.csatDates  = r2.dates;
+
+    if(!G.agentSnaps.length) throw new Error('Không parse được dữ liệu Agent List. Kiểm tra format và header.');
+
+    compute();
+    G.ready=true;
+
+    const info=`Agent List: ${G.agentSnaps.length} rows · ${Object.keys(G.snapshots).length} tuần · CSAT Map: ${Object.keys(G.csatMap).length} agents`;
+    statusEl.className='parse-status ok';
+    statusEl.textContent='✓ Parse thành công · '+info;
+    document.getElementById('parse-info').textContent=info;
+
+    // Show previews
+    const wowCount = G.curAgents.filter(a=>a.wow!=null).length;
+    const wowSrc = G.csatWeeks.length>=2 ? `File2 (${G.csatWeeks[0]} vs ${G.csatWeeks[1]})` : G.prevWeek ? `File1 (W${G.curWeek} vs W${G.prevWeek})` : 'Không đủ data — cần 2 tuần hoặc File2';
+    showPreview('preview-agent', `Parsed ${G.agentSnaps.length} agent-week rows\nCurrent week: W${G.curWeek} (${G.curAgents.length} agents)\nPrev week: W${G.prevWeek||'—'} (${G.prevAgents.length} agents)\nWeeks found: ${Object.keys(G.snapshots).sort((a,b)=>b-a).map(w=>'W'+w).join(', ')}\nWoW: ${wowCount}/${G.curAgents.filter(a=>a.repeated>=1).length} repeated agents có data · Source: ${wowSrc}`);
+    showPreview('preview-csat', `Parsed ${Object.keys(G.csatMap).length} agents from CSAT Weekly\nWeeks: ${G.csatWeeks.join(', ')}\nSample: ${Object.values(G.csatMap).slice(0,3).map(a=>a.name||'?').join(', ')}...`);
+
+    // Mark nav tabs
+    document.getElementById('nav-dashboard').classList.add('data-ready');
+    document.getElementById('nav-history').classList.add('data-ready');
+    document.getElementById('nav-report').classList.add('data-ready');
+
+    renderAll();
+    if(typeof renderQuarterly === 'function') renderQuarterly();
+
+  } catch(e){
+    statusEl.className='parse-status err';
+    statusEl.textContent='✗ Lỗi: '+e.message;
+    console.error(e);
+  }
+}
+
+function showPreview(id, text){
+  const el=document.getElementById(id);
+  el.style.display='block';
+  el.textContent=text;
+}
+
+function clearData(){
+  document.getElementById('input-agent').value='';
+  document.getElementById('input-csat').value='';
+  document.getElementById('preview-agent').style.display='none';
+  document.getElementById('preview-csat').style.display='none';
+  document.getElementById('parse-status').className='parse-status idle';
+  document.getElementById('parse-status').textContent='Chưa có data. Paste và Parse để bắt đầu.';
+  G.ready=false;
+  ['nav-dashboard','nav-history','nav-report'].forEach(id=>document.getElementById(id).classList.remove('data-ready'));
+}
+
+// ================================================================
+// SAMPLE DATA LOADER
+// ================================================================
+function loadSampleData(){
+  // Cảnh báo trước khi ghi đè data đang có
+  const _a=document.getElementById('input-agent'),_c=document.getElementById('input-csat');
+  if((_a.value.trim()||_c.value.trim()) && !confirm('Thao tác này sẽ GHI ĐÈ data đang nhập bằng Sample Data (W28). Tiếp tục?')) return;
+  // Minimal sample from documents provided
+  const agentSample = `Week\tDate\tAgent Name\tAgent Email\tChannel\tTeam\tUsertype\tCSAT WTD\tRepeated\tBottom Monthly\tTreatment\tRepeats weekly\tTeam
+28\t13/7/2026\t03. CH.B Pham Hoang Mai Trang\ttrang.phamhoangmai1.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t67.97%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Nguyen Ngoc Huy\thuy.nguyenngoc1.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t58.23%\t0\tYES\t-\t\tChat
+28\t13/7/2026\t03. CA.B Nguyen Duy Ben\tben.nguyenduy2.cs@shopeemobile-external.com\t*\tCA.B\tBuyer\t91.40%\t0\tNO\t-\t\tCall
+28\t13/7/2026\t03. CH.B Nguyen Thi Truc Ly\tly.nguyenthitruc2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t71.60%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Nguyen Viet Minh Vu\tvu.nguyenvietminh2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t76.09%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Nguyen Thi Cam Tien\ttien.nguyenthicam3.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t75.52%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Nguyen Thi Sy Quyen\tquyen.nguyenthisy1.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t72.44%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Ho Hieu Nghia\tnghia.hohieu1.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t74.68%\t1\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Nguyen Thi Kim Huong\thuong.nguyenthikim2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t62.94%\t1\tYES\tCO 1:1\t\tChat
+28\t13/7/2026\t03. MT Le Van Quang\tquang.levan1.cs@shopeemobile-external.com\t*\tMT\tBuyer\t77.06%\t1\tNO\tCO 1:1\t\tMulti
+28\t13/7/2026\t03. CA.B Nguyen Thi Ngoc Anh\tanh.nguyenthingoc1.cs@shopeemobile-external.com\t*\tCA.B\tBuyer\t94.37%\t1\tNO\tCO 1:1\t\tCall
+28\t13/7/2026\t03. CA.B Nguyen Truong Vy\tvy.nguyentruong2.cs@shopeemobile-external.com\t*\tCA.B\tBuyer\t91.43%\t1\tNO\tCO 1:1\t\tCall
+28\t13/7/2026\t03. CH.B Le Hoang Minh Nguyen\tnguyen.lehoangminh2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t74.19%\t2\tNO\tCO 1:1\t\tChat
+28\t13/7/2026\t03. CH.B Le Thi Kim Ngan\tngan.lethikim2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t76.75%\t0\tNO\t-\t\tChat
+28\t13/7/2026\t03. MT Nguyen Tu Trinh\ttrinh.nguyentu1.cs@shopeemobile-external.com\t*\tMT\tBuyer\t73.63%\t0\tNO\t-\t\tMulti
+25\t22/6/2026\t03. MT Tran Thi Quynh Nhi\tquynhnhi.tranthi.cs@shopeemobile-external.com\t*\tMT\tBuyer\t70.27%\t2\tNO\tCO 1:1\tYES\tMulti
+25\t22/6/2026\t03. MT Huynh Truc Bao Thanh\tbaothanh.huynh.cs@shopeemobile-external.com\t*\tMT\tBuyer\t70.43%\t2\tNO\tCO 1:1\tYES\tMulti
+25\t22/6/2026\t03. CA.B Than Thi Ngoc Thao\tthao.thanthingoc1.cs@shopeemobile-external.com\t*\tCA.B\tBuyer\t90.57%\t3\tNO\tBPO treatment\tYES\tCall
+25\t22/6/2026\t03. CH.B Vu Minh Tam\ttam.vuminh2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t73.39%\t3\tYES\tBPO treatment\tYES\tChat
+25\t22/6/2026\t03. CH.B Le Hoang Minh Nguyen\tnguyen.lehoangminh2.cs@shopeemobile-external.com\t*\tCH.B\tBuyer\t76.06%\t1\tNO\tCO 1:1\tYES\tChat`;
+
+  const csatSample = `Agent name\tAgent email\tBPO\tTeam\tFull Team\tAgent seniority\tBucket\tRating\t7/13/2026\t7/6/2026\t6/29/2026\t6/22/2026
+\t\t\t\t\t\t\t\tW29\tW28\tW27\tW26
+03. CH.B Le Hoang Minh Nguyen\tnguyen.lehoangminh2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t2-6 months\tB\t1194\t81.0%\t74.2%\t77.4%\t81.9%
+03. CH.B Nguyen Thi Kim Huong\thuong.nguyenthikim2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tC\t266\t61.4%\t62.9%\t68.6%\t70.2%
+03. CH.B Pham Hoang Mai Trang\ttrang.phamhoangmai1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tC\t488\t78.9%\t67.8%\t79.6%\t81.4%
+03. CH.B Nguyen Thi Truc Ly\tly.nguyenthitruc2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tB\t1311\t78.4%\t71.6%\t79.1%\t76.8%
+03. CH.B Nguyen Viet Minh Vu\tvu.nguyenvietminh2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t6-12 months\tB\t1206\t74.8%\t76.2%\t79.6%\t80.3%
+03. CH.B Nguyen Thi Sy Quyen\tquyen.nguyenthisy1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tC\t1872\t78.9%\t72.4%\t76.2%\t73.2%
+03. CH.B Ho Hieu Nghia\tnghia.hohieu1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tC\t131\t75.0%\t74.7%\t80.3%\t74.8%
+03. CH.B Nguyen Thi Cam Tien\ttien.nguyenthicam3.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t2-6 months\tB\t1296\t81.7%\t75.5%\t83.3%\t80.9%
+03. MT Le Van Quang\tquang.levan1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tMulti\tMT\t1-2 years\tC\t1232\t84.0%\t78.9%\t81.8%\t86.0%
+03. CA.B Nguyen Thi Ngoc Anh\tanh.nguyenthingoc1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tCall\tCA.B\t1-2 years\tC\t1127\t95.1%\t94.4%\t96.6%\t91.0%
+03. CA.B Nguyen Truong Vy\tvy.nguyentruong2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tCall\tCA.B\t6-12 months\tB\t1236\t94.0%\t91.4%\t93.7%\t93.7%
+03. CH.B Nguyen Ngoc Huy\thuy.nguyenngoc1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t1-2 years\tC\t652\t68.2%\t58.2%\t78.3%\t58.3%
+03. CA.B Nguyen Duy Ben\tben.nguyenduy2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tCall\tCA.B\t6-12 months\tB\t1524\t93.6%\t91.4%\t96.3%\t93.8%
+03. CH.B Le Thi Kim Ngan\tngan.lethikim2.cs@shopeemobile-external.com\tVN - BPO - MCVN\tChat\tCH.B\t6-12 months\tC\t740\t88.2%\t76.8%\t79.3%\t
+03. MT Nguyen Tu Trinh\ttrinh.nguyentu1.cs@shopeemobile-external.com\tVN - BPO - MCVN\tMulti\tMT\t1-2 years\tB\t460\t90.9%\t71.6%\t82.7%\t90.3%`;
+
+  document.getElementById('input-agent').value = agentSample;
+  document.getElementById('input-csat').value = csatSample;
+  toast('Sample data loaded — bấm Parse & Apply');
+}
+
+// ================================================================
+// RENDER ALL
+// ================================================================
+function renderAll(){
+  if(!G.ready)return;
+  updateWeekLabels();
+  renderKPIs();
+  renderSummaryTables();
+  renderCharts();
+  renderTable();
+  renderHistory();
+  renderReport();
+
+  // Show content, hide empty states
+  document.getElementById('dash-empty').style.display='none';
+  document.getElementById('dash-content').style.display='block';
+  document.getElementById('hist-empty').style.display='none';
+  document.getElementById('hist-content').style.display='block';
+  document.getElementById('rp-empty').style.display='none';
+  document.getElementById('rp-content').style.display='block';
+}
+
+const BUILD_ID='path-migrate-7';   // đổi mỗi lần deploy để biết trang đang chạy bản nào
+const SUM_WEEK_COLS=6;         // số cột tuần trong Bảng tổng hợp (khớp cửa sổ L6W)
+
+function updateWeekLabels(){
+  const W=G.dispWeek||G.curWeek||'?';   // nhãn tuần hiển thị = tuần CSAT mới nhất
+  // Cửa sổ lấy theo dải tuần CSAT (số tuần thật)
+  const _ww=G.windowWeeks||[];
+  const _span=(G.winMin!=null&&G.winMax!=null)?(G.winMax-G.winMin+1):null;
+  const _wwStr=(G.winMin!=null)
+    ? `W${G.winMin}–W${G.winMax} (${_ww.length}/${_span} tuần có data)`
+    : '—';
+  document.getElementById('dash-meta').innerHTML=`MCVN QA &nbsp;·&nbsp; Tuần hiện tại: <b>W${W}</b> &nbsp;·&nbsp; Đang tính L6W: <b>${_wwStr}</b> &nbsp;·&nbsp; CSAT weeks: ${G.csatWeeks.join(', ')||'—'} &nbsp;·&nbsp; <span style="color:var(--t3)">build ${BUILD_ID}</span>`;
+  // Lưu ý: rp-meta bên dưới ghi đè cả cụm (gồm #rp-week-lbl), nên KHÔNG set rp-week-lbl ở đây
+  // (nếu set sẽ lỗi null ở lần parse thứ 2 → renderAll đứt giữa chừng → bảng lệch với data).
+  document.getElementById('rp-meta').innerHTML=`Action Update · <b>W${W}</b> &nbsp;·&nbsp; đang có <b>${G.curAgents.length}</b> agents · CSAT: ${G.csatWeeks.join(', ')||'—'}`;
+  document.getElementById('footer-week').textContent=`W${W} · ${new Date().toLocaleDateString('vi-VN')}`;
+  document.getElementById('hist-meta').innerHTML=`W${W} Repeated agents · CSAT source: CSAT Weekly`;
+  // Week column headers
+  const wks = G.csatWeeks;
+  ['sh-w1','rp-sh-w1'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[0]||'W_cur';});
+  ['sh-w2','rp-sh-w2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[1]||'W-1';});
+  ['sh-w3','rp-sh-w3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[2]||'W-2';});
+  ['sh-w4','rp-sh-w4'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[3]||'W-3';});
+  ['sh-w5','rp-sh-w5'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[4]||'W-4';});
+  ['sh-w6','rp-sh-w6'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=wks[5]||'W-5';});
+}
+
+// ================================================================
+// KPIs
+// ================================================================
+// Một agent/row có qua bộ lọc Team + Usertype hiện tại không (dùng chung cho KPI, chart, summary, report)
+function agentPass(a){
+  if(activeTab!=='all'&&a.team_label!==activeTab)return false;
+  if(activeUT!=='all'&&a.usertype!==activeUT)return false;
+  return true;
+}
+function getFilteredAgents(){
+  return G.curAgents.filter(agentPass);
+}
+function setTab(t,btn){activeTab=t;document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');applyFilters();}
+function applyFilters(){
+  // BUG cũ: activeUT không bao giờ được gán từ dropdown => lọc Usertype vô tác dụng
+  const _ut=document.getElementById('filter-ut');
+  activeUT = _ut ? (_ut.value||'all') : 'all';
+  renderKPIs(); renderSummaryTables(); renderCharts(); renderTable(); renderReport();
+}
+
+function renderKPIs(){
+  const all = getFilteredAgents();
+  const rep = all.filter(a=>a.repeated>=1);
+  const nonrep = all.filter(a=>a.repeated===0);
+  const withPrev = rep.filter(a=>a.wow!=null);
+  const up = withPrev.filter(a=>a.wow>0);
+  const down = withPrev.filter(a=>a.wow<0);
+  const avgCsat = rep.length ? (rep.reduce((s,a)=>s+(a.csat_cur||0),0)/rep.length) : null;
+
+  // prev week repeated
+  const prevRep = G.prevAgents.filter(a=>a.repeated>=1);
+  const exit = prevRep.filter(p=>!rep.some(r=>r.email===p.email));
+
+  const W=G.dispWeek||G.curWeek, PW=G.dispPrevWeek||G.prevWeek;   // nhãn tuần hiển thị theo CSAT
+  const setKPI=(id,val,sub,delta,cls)=>{
+    const el=document.getElementById(id); if(el)el.textContent=val;
+    const es=document.getElementById(id+'-s'); if(es&&sub)es.textContent=sub;
+    const ed=document.getElementById(id+'-d'); if(ed&&delta){ed.textContent=delta;ed.className='kpi-d '+(cls||'neu');}
+  };
+  setKPI('k-total',rep.length,'agents trong L6W list',`${rep.length>=(prevRep.length)?'+':''}${rep.length-prevRep.length} vs W${PW||'—'}`,rep.length>=prevRep.length?'neg':'pos');
+  setKPI('k-csat',avgCsat!=null?avgCsat.toFixed(1)+'%':'—',`W${W} CSAT WTD`,'—','neu');
+  setKPI('k-up',up.length,`${Math.round(up.length/Math.max(rep.length,1)*100)}% agents`,up.length?`avg ${(up.reduce((s,a)=>s+a.csat_cur,0)/up.length).toFixed(1)}%`:'—','pos');
+  setKPI('k-down',down.length,`${Math.round(down.length/Math.max(rep.length,1)*100)}% agents`,down.length?`avg ${(down.reduce((s,a)=>s+a.csat_cur,0)/down.length).toFixed(1)}%`:'—','neg');
+  document.getElementById('k-l2').textContent=rep.filter(a=>a.repeated>=2).length;
+  document.getElementById('k-l2-d').textContent=rep.filter(a=>a.repeated>=2).map(a=>a.name.split(' ').slice(-2).join(' ')).join(', ')||'Không có';
+  document.getElementById('k-exit').textContent=exit.length;
+  document.getElementById('k-exit-d').textContent='từ W'+(PW||'—')+' → W'+W;
+}
+
+// ================================================================
+// SUMMARY TABLE
+// ================================================================
+function buildSummaryData(){
+  const all=getFilteredAgents();
+  const wks=G.csatWeeks;
+
+  function grpStats(agents){
+    const csats=wks.map(w=>{ const vals=agents.map(a=>G.csatMap[a.email]?.[w]).filter(v=>v!=null); return vals.length?(vals.reduce((s,v)=>s+v,0)/vals.length):null; });
+    return {agents:agents.length, csat:csats};
+  }
+
+  function wowCalc(curAgents){
+    // Use per-agent .wow (already computed in compute()) — avg over agents that have it
+    const valid = curAgents.filter(a=>a.wow!=null);
+    if(!valid.length) return null;
+    // WoW of the GROUP = avg(csat_cur) - avg(csat_prev) for agents with both values
+    const avgCur  = valid.reduce((s,a)=>s+a.csat_cur, 0) / valid.length;
+    const avgPrev = valid.reduce((s,a)=>s+a.csat_prev,0) / valid.length;
+    return +((avgCur - avgPrev).toFixed(2));
+  }
+
+  const repCur=all.filter(a=>a.repeated>=1);
+  const nonCur=all.filter(a=>a.repeated===0);
+
+  // Build by lần
+  const maxLan=Math.max(0,...repCur.map(a=>a.repeated));
+  const lanMax=Math.max(6,maxLan); // luôn hiện Lần 1..6 (chu kỳ repeated 6 tuần); mở rộng nếu có agent lặp nhiều hơn
+  const lanGroups=[];
+  for(let l=1;l<=lanMax;l++){
+    const lCur=repCur.filter(a=>a.repeated===l);
+    const lUp=lCur.filter(a=>a.wow>0);
+    const lDown=lCur.filter(a=>a.wow<0);
+    const s=grpStats(lCur);
+    lanGroups.push({
+      label:`Lần ${l}`, agents:lCur.length||'—', wow:lCur.length?wowCalc(lCur):null, csat:s.csat, depth:1,
+      sub:[
+        {label:'Giảm WoW',agents:lDown.length||'—',wow:lDown.length?wowCalc(lDown):null,csat:grpStats(lDown).csat,depth:2},
+        {label:'Tăng WoW',agents:lUp.length||'—',wow:lUp.length?wowCalc(lUp):null,csat:grpStats(lUp).csat,depth:2},
+      ]
+    });
+  }
+
+  const allStats=grpStats(all);
+  const nonStats=grpStats(nonCur);
+  const nonUp=nonCur.filter(a=>a.wow>0);
+  const nonDown=nonCur.filter(a=>a.wow<0);
+
+  return [{
+    label:'Total CS', agents:all.length, wow:wowCalc(all), csat:allStats.csat, depth:0,
+    sub:[
+      {label:'CS xuất hiện nhưng không lặp lại', agents:nonCur.length, wow:wowCalc(nonCur), csat:nonStats.csat, depth:1,
+       sub:[
+        {label:'Giảm WoW',agents:nonDown.length||'—',wow:nonDown.length?wowCalc(nonDown):null,csat:grpStats(nonDown).csat,depth:2},
+        {label:'Tăng WoW',agents:nonUp.length||'—',wow:nonUp.length?wowCalc(nonUp):null,csat:grpStats(nonUp).csat,depth:2},
+      ]},
+      ...lanGroups
+    ]
+  }];
+}
+
+function renderTableRows(items,targetId){
+  const tbody=document.getElementById(targetId);
+  if(!tbody)return;
+  let rows=[];
+  function addRow(item){
+    const d=item.depth||0;
+    const wowStr=item.wow==null?'<span style="color:var(--t3)">—</span>'
+      :item.wow>=0?`<span class="wow-pos">+${item.wow.toFixed(1)}% ▲</span>`
+      :`<span class="wow-neg">${item.wow.toFixed(1)}% ▼</span>`;
+    const agStr=item.agents==='—'||item.agents===0?'<span style="color:var(--t3)">—</span>':`<b>${item.agents}</b>`;
+    const csatCells=Array.from({length:SUM_WEEK_COLS},(_,i)=>(item.csat||[])[i]).map(c=>{
+      if(c==null)return`<td style="color:var(--t3)">—</td>`;
+      const cl=c>=90?'csat-hi':c>=80?'csat-mid':c>=70?'csat-lo':'csat-vlo';
+      return`<td class="${cl}" style="font-weight:700">${c.toFixed(1)}%</td>`;
+    }).join('');
+    const cls=d===0?'grp0':d===1?'grp1':'sub';
+    rows.push(`<tr class="${cls}"><td>${item.label}</td><td>${agStr}</td><td>${wowStr}</td>${csatCells}</tr>`);
+    if(item.sub)item.sub.forEach(s=>addRow(s));
+  }
+  const data=buildSummaryData();
+  data.forEach(d=>addRow(d));
+  tbody.innerHTML=rows.join('');
+}
+
+function renderSummaryTables(){
+  renderTableRows(null,'rp-sum-tbody'); // dashboard sum-tbody removed
+}
+
+function copySummaryTable(){
+  const W=G.curWeek;
+  const wks=G.csatWeeks;
+  let lines=[`Repeated Agents\tAgents\tWoW\t${Array.from({length:SUM_WEEK_COLS},(_,i)=>wks[i]||`W-${i}`).join('\t')}`];
+  function addLine(item){
+    const prefix=item.depth===2?'      ':item.depth===1?'   ':'';
+    const wow=item.wow==null?'—':item.wow>=0?`+${item.wow.toFixed(1)}% ▲`:`${item.wow.toFixed(1)}% ▼`;
+    const csats=Array.from({length:SUM_WEEK_COLS},(_,i)=>{const c=item.csat?.[i];return c!=null?c.toFixed(1)+'%':'—';}).join('\t');
+    lines.push(`${prefix}${item.label}\t${item.agents}\t${wow}\t${csats}`);
+    if(item.sub)item.sub.forEach(s=>addLine(s));
+  }
+  buildSummaryData().forEach(d=>addLine(d));
+  copyText(lines.join('\n'));
+}
+function copyRpTable(){copySummaryTable();}
+
+// ================================================================
+// CHARTS
+// ================================================================
+function renderCharts(){
+  const gc='rgba(37,44,64,.6)',tc='#49536a';
+  const base={responsive:true,plugins:{legend:{labels:{color:tc,font:{size:10}}}},
+    scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:10}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:10}}}}};
+
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};
+
+  const rep=getFilteredAgents().filter(a=>a.repeated>=1);
+  const sorted=[...rep].sort((a,b)=>(a.csat_cur||0)-(b.csat_cur||0));
+  const names=sorted.map(a=>a.name.split(' ').slice(-2).join(' '));
+
+  // WoW bar
+  const cWoW=document.getElementById('cWoW');
+  if(cWoW){
+    const wLabels=G.csatWeeks;
+    document.getElementById('wow-chart-title').textContent=`CSAT ${wLabels[1]||'W-1'} vs ${wLabels[0]||'W'} — Repeated`;
+    charts.wow=new Chart(cWoW,{type:'bar',data:{labels:names,datasets:[
+      {label:wLabels[1]||'W-1',data:sorted.map(a=>a.csat_prev),backgroundColor:'#5b9cf655',borderRadius:3},
+      {label:wLabels[0]||'W',data:sorted.map(a=>a.csat_cur),backgroundColor:sorted.map(a=>cc(a.csat_cur)+'bb'),borderRadius:3},
+    ]},options:{...base,indexAxis:'y',scales:{
+      x:{...base.scales.x,min:50,max:100,ticks:{...base.scales.x.ticks,callback:v=>v+'%'}},
+      y:{...base.scales.y,ticks:{...base.scales.y.ticks,font:{size:9}}}
+    },plugins:{...base.plugins,tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw!=null?c.raw.toFixed(1)+'%':'—'}`}}}}});
+  }
+
+  // Trend
+  const snaps=Object.entries(G.snapshots).map(([w,rows])=>{
+    const fr=rows.filter(agentPass);    // lọc snapshot theo Team/Usertype để Trend nhảy theo filter
+    return {
+      week:+w,
+      total:fr.filter(r=>r.repeated>=1).length,
+      l1:fr.filter(r=>r.repeated===1).length,
+      l2:fr.filter(r=>r.repeated===2).length,
+      l3:fr.filter(r=>r.repeated>=3).length,
+    };
+  }).sort((a,b)=>a.week-b.week);
+
+  const cT=document.getElementById('cTrend');
+  if(cT&&snaps.length){
+    charts.trend=new Chart(cT,{type:'bar',data:{labels:snaps.map(s=>`W${s.week}`),datasets:[
+      {label:'L1',data:snaps.map(s=>s.l1),backgroundColor:'#5b9cf688',borderRadius:3},
+      {label:'L2',data:snaps.map(s=>s.l2),backgroundColor:'#f0c94a88',borderRadius:3},
+      {label:'L3+',data:snaps.map(s=>s.l3),backgroundColor:'#e0524488',borderRadius:3},
+      {label:'Total',data:snaps.map(s=>s.total),type:'line',borderColor:'#e07d45',backgroundColor:'transparent',borderWidth:2,pointBackgroundColor:'#e07d45',pointRadius:4,tension:.3},
+    ]},options:{...base,scales:{...base.scales,x:{...base.scales.x,stacked:true},y:{...base.scales.y,stacked:true,beginAtZero:true}},
+      plugins:{...base.plugins,tooltip:{mode:'index',intersect:false}}}});
+  }
+}
+
+// ================================================================
+// AGENT TABLE
+// ================================================================
+function sparkBars(a){
+  const vals=a.csat_history||[];
+  const valid=vals.filter(v=>v!=null);
+  if(!valid.length)return'—';
+  const mn=Math.min(...valid),mx=Math.max(...valid),rng=mx-mn||1;
+  return`<div class="spark">${vals.map(v=>{
+    if(v==null)return`<div class="sp-b" style="height:4px;background:var(--bdr)"></div>`;
+    const h=Math.round(4+((v-mn)/rng)*18);
+    return`<div class="sp-b" style="height:${h}px;background:${cc(v)};opacity:.8"></div>`;
+  }).join('')}</div>`;
+}
+function editField(email,field,val){const a=G.curAgents.find(x=>x.email===email);if(a){a[field]=val;renderReport();}}
+function renderTable(){
+  const search=(document.getElementById('srch')?.value||'').toLowerCase();
+  const all=getFilteredAgents();   // giữ Rolling L6W: gồm cả agent lặp ≥1 và agent xuất hiện nhưng lặp 0 lần
+  const data=[...all].filter(r=>!search||r.name.toLowerCase().includes(search))
+    .sort((a,b)=>{
+      let va=sortCol==='wow'?(a.wow??-999):(a[sortCol]??-999);
+      let vb=sortCol==='wow'?(b.wow??-999):(b[sortCol]??-999);
+      if(typeof va==='string')va=va.toLowerCase(),vb=(vb+'').toLowerCase();
+      return sortDir==='asc'?(va>vb?1:-1):(va<vb?1:-1);
+    });
+  document.getElementById('tbl-cnt').textContent=data.length;
+  lastTableRows=data;
+  const lb=l=>l>=3?`<span class="badge b4">L${l}</span>`:l===2?`<span class="badge b2">L${l}</span>`:l===1?`<span class="badge b1">L${l}</span>`:`<span class="badge" style="background:var(--s2);color:var(--t3)">L0</span>`;
+  const mb=m=>m==='New Join'?`<span class="badge bnew">New</span>`:m==='Rejoin'?`<span class="badge brej">Rejoin</span>`:`<span class="badge bcon">Consec</span>`;
+  const bk=b=>`<span class="badge bb${b||'U'}">${b||'U'}</span>`;
+  document.getElementById('aTbody').innerHTML=data.map(r=>{
+    const d=r.wow;
+    const dStr=d==null?'—':d>=0?`<span class="pos">+${d.toFixed(1)}%</span>`:`<span class="neg">${d.toFixed(1)}%</span>`;
+    const cc27=cc(r.csat_prev),cc28=cc(r.csat_cur);
+    const fc=r.forecast_remove==='Cycle đủ 6W'?`<span style="color:var(--green);font-size:10px">✓ Đủ 6W</span>`:`<span style="color:var(--t2);font-size:10px">${r.forecast_remove}</span>`;
+    return`<tr>
+      <td style="font-weight:600;max-width:180px">${r.name}</td>
+      <td style="color:var(--t2)">${r.full_team||r.team}</td>
+      <td>${bk(r.bucket)}</td>
+      <td style="color:var(--t3);font-size:10px">${r.seniority||'—'}</td>
+      <td>${lb(r.repeated)}</td>
+      <td>${mb(r.movement)}</td>
+      <td><div class="cbar-wrap"><div class="cbar"><div class="cbar-fill" style="width:${r.csat_prev||0}%;background:${cc27}"></div></div><span class="cnum" style="color:${cc27}">${fmt(r.csat_prev)}</span></div></td>
+      <td><div class="cbar-wrap"><div class="cbar"><div class="cbar-fill" style="width:${r.csat_cur||0}%;background:${cc28}"></div></div><span class="cnum" style="color:${cc28}">${fmt(r.csat_cur)}</span></div></td>
+      <td>${dStr}</td>
+      <td>${sparkBars(r)}</td>
+      <td style="color:var(--t2);font-size:10px">${r.treatment}</td>
+      <td>${fc}</td>
+      <td>${r.bottom_monthly==='YES'?`<span style="color:var(--red);font-weight:700">YES</span>`:`<span style="color:var(--t3)">—</span>`}</td>
+      <td><textarea class="edit-ta" rows="2" placeholder="Root cause..." onchange="editField('${r.email}','root_cause',this.value)">${r.root_cause||''}</textarea></td>
+      <td><textarea class="edit-ta" rows="2" placeholder="Reason next wk..." onchange="editField('${r.email}','reason_next',this.value)">${r.reason_next||''}</textarea></td>
+    </tr>`;
+  }).join('');
+}
+function filterTbl(v){renderTable();}
+function srt(col){if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=col;sortDir='asc';}renderTable();}
+// Nạp SheetJS lazy chỉ khi cần (bấm Download) — không chặn tải trang
+let _xlsxPromise=null;
+function ensureXLSX(){
+  if(window.XLSX) return Promise.resolve(true);
+  if(_xlsxPromise) return _xlsxPromise;
+  _xlsxPromise=new Promise(res=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.crossOrigin='anonymous';
+    s.onload=()=>res(true);
+    s.onerror=()=>res(false);   // lỗi mạng → để exportGrid fallback CSV
+    document.head.appendChild(s);
+  });
+  return _xlsxPromise;
+}
+// Xuất grid: dùng Excel .xlsx thật nếu nạp được SheetJS, nếu không thì fallback CSV (BOM UTF-8)
+async function exportGrid(baseName,headers,rows2d){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  const stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+  await ensureXLSX();
+  if(window.XLSX){
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows2d]);
+    ws['!cols']=headers.map((h,i)=>{
+      let w=String(h).length;
+      rows2d.forEach(r=>{const l=(r[i]==null?'':String(r[i])).length;if(l>w)w=l;});
+      return {wch:Math.min(Math.max(w+2,8),40)};
+    });
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Data');
+    XLSX.writeFile(wb,`${baseName}_${stamp}.xlsx`);
+    return;
+  }
+  const esc=v=>{const s=(v==null?'':String(v)).replace(/"/g,'""');return /[",\n]/.test(s)?`"${s}"`:s;};
+  const csv='﻿'+[headers,...rows2d].map(r=>r.map(esc).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`${baseName}_${stamp}.csv`;document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+function downloadTable(){
+  const rows=lastTableRows;
+  if(!rows||!rows.length){alert('Chưa có dữ liệu để tải. Hãy nhập/parse data trước.');return;}
+  const headers=['Agent','Team','Bkt','Seniority','Lần','Movement','CSAT W-1','CSAT W','WoW Δ (%)','Trend (history)','Treatment','Forecast','Bottom','Root Cause','Reason next wk'];
+  const rows2d=rows.map(r=>[
+    r.name,
+    r.full_team||r.team||'',
+    r.bucket||'U',
+    r.seniority||'',
+    r.repeated,
+    r.movement||'',
+    r.csat_prev==null?'':r.csat_prev,
+    r.csat_cur==null?'':r.csat_cur,
+    r.wow==null?'':Number(r.wow.toFixed(1)),
+    (r.csat_history||[]).filter(v=>v!=null).join(' | '),
+    r.treatment||'',
+    r.forecast_remove||'',
+    r.bottom_monthly==='YES'?'YES':'',
+    r.root_cause||'',
+    r.reason_next||''
+  ]);
+  exportGrid('repeated_agents',headers,rows2d);
+}
+
+// ================================================================
+// HISTORY
+// ================================================================
+function renderHistory(search='',bkt='all'){
+  if(!G.ready)return;
+  const repEmails=new Set(G.curAgents.filter(a=>a.repeated>=1).map(a=>a.email));
+  const wks=G.csatWeeks;
+  const curWLabel=wks[0]||'W_cur';
+
+  // Build thead
+  const thead=document.getElementById('h-thead');
+  if(thead) thead.innerHTML=`<tr><th>Agent</th><th>Team</th><th>Bkt</th><th>Seniority</th>${wks.map((w,i)=>`<th${i===0?' class="cur-wk-col"':''}>${w}${i===0?' ★':''}</th>`).join('')}<th>Min</th><th>Avg</th></tr>`;
+
+  const data=Object.values(G.csatMap)
+    .filter(a=>{
+      if(!repEmails.has(a.email||Object.keys(G.csatMap).find(k=>G.csatMap[k]===a)))return false;
+      if(search&&!a.name.toLowerCase().includes(search.toLowerCase()))return false;
+      if(bkt!=='all'&&a.bucket!==bkt)return false;
+      return true;
+    });
+
+  // Fix: email lookup
+  const agentList=G.curAgents.filter(a=>a.repeated>=1);
+
+  const shown=agentList.filter(a=>{
+      const cs=G.csatMap[a.email];
+      if(!cs)return false;
+      if(search&&!a.name.toLowerCase().includes(search.toLowerCase()))return false;
+      if(bkt!=='all'&&(cs.bucket||'U')!==bkt)return false;
+      return true;
+    });
+  lastHistory={wks,agents:shown.map(a=>({name:a.name,team:a.team,cs:G.csatMap[a.email]||{}}))};
+  document.getElementById('hTbody').innerHTML=shown
+    .map(a=>{
+      const cs=G.csatMap[a.email]||{};
+      const vals=wks.map(w=>cs[w]);
+      const valid=vals.filter(v=>v!=null);
+      const mn=valid.length?Math.min(...valid):null;
+      const avg=valid.length?(valid.reduce((s,v)=>s+v,0)/valid.length):null;
+      const cells=wks.map((w,i)=>{
+        const v=cs[w];
+        const isCur=i===0;
+        if(v==null)return`<td${isCur?' class="cur-wk-col"':''} style="color:var(--t3)">—</td>`;
+        return`<td${isCur?' class="cur-wk-col"':''} style="color:${cc(v)};font-weight:700">${v.toFixed(1)}%</td>`;
+      }).join('');
+      return`<tr><td>${a.name}</td><td style="color:var(--t2)">${cs.full_team||a.team}</td><td><span class="badge bb${cs.bucket||'U'}">${cs.bucket||'U'}</span></td><td style="color:var(--t3);font-size:10px">${cs.seniority||'—'}</td>${cells}<td style="color:var(--red);font-weight:700">${mn!=null?mn.toFixed(1)+'%':'—'}</td><td style="color:var(--blue);font-weight:700">${avg!=null?avg.toFixed(1)+'%':'—'}</td></tr>`;
+    }).join('');
+
+  // History chart
+  const pal=['#5b9cf6','#3ec989','#f0c94a','#e07d45','#e05252','#a78bfa','#00c8ff','#ff80ab','#69f0ae','#ffd180','#80d8ff','#e040fb'];
+  const cH=document.getElementById('cHistory');
+  if(cH){
+    const agForChart=agentList.filter(a=>G.csatMap[a.email]);
+    try{charts.hist&&charts.hist.destroy();}catch(e){}
+    charts.hist=new Chart(cH,{type:'line',data:{labels:wks,datasets:agForChart.map((a,i)=>({
+      label:a.name.split(' ').slice(-2).join(' '),
+      data:wks.map(w=>G.csatMap[a.email]?.[w]??null),
+      borderColor:pal[i%pal.length],backgroundColor:'transparent',
+      borderWidth:1.5,pointRadius:3,pointBackgroundColor:pal[i%pal.length],
+      tension:.3,spanGaps:true,
+    }))},options:{responsive:true,scales:{
+      x:{grid:{color:'rgba(37,44,64,.6)'},ticks:{color:'#49536a',font:{size:10}}},
+      y:{grid:{color:'rgba(37,44,64,.6)'},ticks:{color:'#49536a',font:{size:10},callback:v=>v+'%'},min:50,max:100}
+    },plugins:{legend:{position:'right',labels:{color:'#49536a',font:{size:9},boxWidth:10,padding:5}},tooltip:{mode:'index',intersect:false}}}});
+  }
+}
+function filterH(v){renderHistory(v,document.getElementById('h-bkt').value);}
+function downloadHistory(){
+  const h=lastHistory;
+  if(!h||!h.agents.length){alert('Chưa có data CSAT History để tải. Hãy paste File 2 (CSAT Weekly) trước.');return;}
+  const headers=['Agent','Team','Bkt','Seniority',...h.wks,'Min','Avg'];
+  const rows2d=h.agents.map(a=>{
+    const cs=a.cs||{};
+    const valid=h.wks.map(w=>cs[w]).filter(v=>v!=null);
+    const mn=valid.length?Number(Math.min(...valid).toFixed(1)):'';
+    const avg=valid.length?Number((valid.reduce((s,v)=>s+v,0)/valid.length).toFixed(1)):'';
+    return [a.name,cs.full_team||a.team||'',cs.bucket||'U',cs.seniority||'',
+      ...h.wks.map(w=>cs[w]==null?'':Number(cs[w].toFixed(1))),mn,avg];
+  });
+  exportGrid('csat_history',headers,rows2d);
+}
+
+// ================================================================
+// REPORT
+// ================================================================
+function renderReport(){
+  if(!G.ready)return;
+  const W=G.curWeek;
+  const wks=G.csatWeeks;
+  const rep=getFilteredAgents().filter(a=>a.repeated>=1);
+  const prev=G.prevAgents.filter(a=>a.repeated>=1&&agentPass(a));
+  const withPrev=rep.filter(a=>a.wow!=null);
+  const up=withPrev.filter(a=>a.wow>0);
+  const down=withPrev.filter(a=>a.wow<0);
+  const avgCur=rep.length?(rep.reduce((s,a)=>s+(a.csat_cur||0),0)/rep.length):null;
+  const avgPrev=withPrev.length?(withPrev.reduce((s,a)=>s+(a.csat_prev||0),0)/withPrev.length):null;
+  const wow=avgCur!=null&&avgPrev!=null?+(avgCur-avgPrev).toFixed(2):null;
+  const avgUp=up.length?(up.reduce((s,a)=>s+(a.csat_cur||0),0)/up.length):null;
+  const avgDown=down.length?(down.reduce((s,a)=>s+(a.csat_cur||0),0)/down.length):null;
+
+  // Build emoji summary
+  const sumData=buildSummaryData();
+  function blockEmoji(emoji,label,row){
+    if(!row)return'';
+    const [cW,cPrev]=[row.csat?.[0],row.csat?.[1]];
+    const wowV=row.wow;
+    const wStr=wowV==null?'—':`${Math.abs(wowV).toFixed(1)}% ${wowV>=0?'▲':'▼'}`;
+    const cStr=cW!=null?cW.toFixed(1)+'%':'—';
+    const cpStr=cPrev!=null?cPrev.toFixed(1)+'%':'—';
+    const nAg=typeof row.agents==='number'?row.agents:0;
+    const upR=row.sub?.find(r=>r.label.includes('Tăng'));
+    const dnR=row.sub?.find(r=>r.label.includes('Giảm'));
+    const nUp=typeof upR?.agents==='number'?upR.agents:0;
+    const nDn=typeof dnR?.agents==='number'?dnR.agents:0;
+    const pUp=nAg?Math.round(nUp/nAg*100):0;
+    const pDn=nAg?Math.round(nDn/nAg*100):0;
+    const avgUpC=upR?.csat?.[0]!=null?upR.csat[0].toFixed(1)+'%':'—';
+    const avgDnC=dnR?.csat?.[0]!=null?dnR.csat[0].toFixed(1)+'%':'—';
+    return `${emoji} ${label}
+   • WoW: ${nAg} agents | Avg CSAT ${wks[0]||'W'} WTD ${cStr} (${wStr} WoW vs ${wks[1]||'W-1'} ${cpStr})
+   • ${nUp} agents tăng (${pUp}%) avg ${avgUpC}, ${nDn} agents giảm (${pDn}%) avg ${avgDnC}`;
+  }
+  const totalRow=sumData[0];
+  const parts=[blockEmoji('📊','Overall repeated list perf',totalRow)];
+  (totalRow?.sub||[]).forEach((sub)=>{
+    // Bỏ qua các Lần rỗng (0 agent) để phần text tóm tắt không bị loãng
+    if(sub.label.startsWith('Lần') && (sub.agents==='—'||sub.agents===0)) return;
+    parts.push(blockEmoji('🔁',sub.label,sub));
+  });
+
+  // Section 1
+  document.getElementById('rp-1').textContent=parts.filter(Boolean).join('\n\n');
+
+  // Section 2
+  const maxLan=Math.max(0,...rep.map(a=>a.repeated));
+  let s2=`* Repeated next week:`;
+  const nextList=rep.filter(a=>a.forecast_remove!=='Cycle đủ 6W');
+  s2+=`\n   * ${nextList.length} agents repeated trong L6Ws:`;
+  for(let l=1;l<=maxLan;l++){
+    const lNext=nextList.filter(a=>a.repeated===l);
+    if(!lNext.length)continue;
+    const label=`Lần ${l}`;
+    const nameStr=lNext.length<=2?' — '+lNext.map(a=>`${a.full_team||a.team} ${a.name} (${fmt(a.csat_cur)})`).join(', '):'';
+    s2+=`\n      * ${label}: ${lNext.length} agent${lNext.length>1?'s':''}${nameStr}`;
+  }
+  if(!nextList.length)s2+='\n      * Không có agent nào dự kiến repeated tuần sau.';
+  document.getElementById('rp-2').textContent=s2;
+
+  // Render report summary tables
+  renderTableRows(null,'rp-sum-tbody');
+}
+
+function copyFullReport(){
+  const W=G.curWeek||'?';
+  const wks=G.csatWeeks;
+  let tblLines=[`Repeated Agents\tAgents\tWoW\t${Array.from({length:SUM_WEEK_COLS},(_,i)=>wks[i]||`W-${i}`).join('\t')}`];
+  function addLine(item){
+    const pre=item.depth===2?'      ':item.depth===1?'   ':'';
+    const wow=item.wow==null?'—':item.wow>=0?`+${item.wow.toFixed(1)}% ▲`:`${item.wow.toFixed(1)}% ▼`;
+    const cs=Array.from({length:SUM_WEEK_COLS},(_,i)=>{const c=item.csat?.[i];return c!=null?c.toFixed(1)+'%':'—';}).join('\t');
+    tblLines.push(`${pre}${item.label}\t${item.agents}\t${wow}\t${cs}`);
+    if(item.sub)item.sub.forEach(s=>addLine(s));
+  }
+  buildSummaryData().forEach(d=>addLine(d));
+  const body=[tblLines.join('\n'),'','1. Overall Repeated List Performance WoW',document.getElementById('rp-1')?.textContent||'','','2. Repeated Next Week',document.getElementById('rp-2')?.textContent||''].join('\n');
+  copyText(body);
+}
+
+// ================================================================
+// GOOGLE SHEET LINK (Apps Script Web App qua JSONP — tránh CORS)
+// URL Web App lưu ở localStorage (không commit lên repo public)
+// ================================================================
+function fetchFromSheet(which){   // which: 'agent' | 'csat' — dùng chung 1 URL Web App
+  which = which==='csat' ? 'csat' : 'agent';
+  const url=((document.getElementById('sheet-url').value)||'').trim();
+  if(!/^https:\/\/script\.google\.com\/.+/.test(url)){
+    toast('URL không hợp lệ — dán link Web App /exec của Apps Script (ở File 1)');
+    return;
+  }
+  localStorage.setItem('sheetWebAppUrl', url);
+  const targetId = which==='csat' ? 'input-csat' : 'input-agent';
+  const otherId  = which==='csat' ? 'input-agent' : 'input-csat';
+  const label    = which==='csat' ? 'CSAT Weekly' : 'Agent List';
+  toast('Đang kéo '+label+'...');
+  const cb='__sheetCb_'+Date.now()+'_'+which;
+  const s=document.createElement('script');
+  let done=false;
+  const cleanup=()=>{ try{delete window[cb];}catch(e){window[cb]=undefined;} s.remove(); clearTimeout(tm); };
+  const tm=setTimeout(()=>{ if(done)return; done=true; cleanup(); toast('Timeout — kiểm tra URL / quyền truy cập Web App (Anyone)'); },25000);
+  window[cb]=function(res){
+    if(done)return; done=true; cleanup();
+    if(!res||!res.ok){ toast('Lỗi từ Sheet ('+label+'): '+((res&&res.error)||'không đọc được')); return; }
+    document.getElementById(targetId).value=res.tsv||'';
+    toast('✓ Đã kéo '+(res.rows||0)+' dòng '+label);
+    // Tự parse khi cả 2 file đều đã có data
+    if((document.getElementById(otherId).value||'').trim()) parseAndApply();
+  };
+  s.onerror=()=>{ if(done)return; done=true; cleanup(); toast('Không gọi được Web App (URL sai hoặc chưa deploy Anyone?)'); };
+  s.src=url+(url.includes('?')?'&':'?')+'sheet='+which+'&callback='+cb+'&_='+Date.now();
+  document.body.appendChild(s);
+}
+
+// ================================================================
+// AUTO-LOAD: kéo cả 2 file từ Google Sheet (Web App domain Shopee) khi mở trang
+// ================================================================
+const DEFAULT_SHEET_URL='https://script.google.com/a/macros/shopeemobile-external.com/s/AKfycbw6KojLCBxDYW6eM6HaRTcUaDUKF4ZYFhMBUAt6mTPYM8kGmF5YHKwcQhzF9TC7ih4QhQ/exec';
+
+// ==== Cache backup: hiển thị ngay data lần trước, làm mới nền, tự refresh mỗi 30 phút ====
+const CACHE_KEY='repeat_data_cache_v1';
+const REFRESH_MS=30*60*1000;   // 30 phút
+function saveCache(agentTsv,csatTsv){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(),agent:agentTsv,csat:csatTsv})); }catch(e){}
+}
+function loadCache(){
+  try{ const r=JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); return (r&&r.agent!=null)?r:null; }catch(e){ return null; }
+}
+function fmtTime(t){
+  const d=new Date(t),p=n=>String(n).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes())+' '+p(d.getDate())+'/'+p(d.getMonth()+1);
+}
+// Hiển thị ngay từ cache (không gọi mạng). Trả true nếu render được.
+function renderFromCache(){
+  const c=loadCache(); if(!c) return false;
+  document.getElementById('input-agent').value=c.agent||'';
+  document.getElementById('input-csat').value=c.csat||'';
+  try{ parseAndApply(); }catch(e){ return false; }
+  if(G.ready){ setLoadState('📦 Data lúc '+fmtTime(c.t)+' · đang cập nhật…'); return true; }
+  return false;
+}
+
+function setLoadState(msg,kind){
+  const el=document.getElementById('load-status');
+  if(el){ el.innerHTML=msg||''; el.style.color = kind==='err'?'#e05252':kind==='ok'?'#3ec989':'var(--t2)'; }
+}
+
+function jsonpGet(which){   // JSONP để tránh CORS; cookie đăng nhập Shopee gửi kèm theo script request
+  return new Promise((resolve,reject)=>{
+    const cb='__sheetCb_'+Date.now()+'_'+which+'_'+Math.floor(Math.random()*1e6);
+    const s=document.createElement('script'); let done=false;
+    const cleanup=()=>{ try{delete window[cb];}catch(e){window[cb]=undefined;} s.remove(); clearTimeout(tm); };
+    const tm=setTimeout(()=>{ if(done)return; done=true; cleanup(); reject(new Error('Timeout — mạng chậm hoặc chưa đăng nhập')); },30000);
+    window[cb]=r=>{ if(done)return; done=true; cleanup(); resolve(r); };
+    s.onerror=()=>{ if(done)return; done=true; cleanup(); reject(new Error('auth')); };
+    s.src=DEFAULT_SHEET_URL+(DEFAULT_SHEET_URL.includes('?')?'&':'?')+'sheet='+which+'&callback='+cb+'&_='+Date.now();
+    document.body.appendChild(s);
+  });
+}
+
+async function autoLoadData(opts){
+  opts=opts||{};
+  const btn=document.getElementById('reload-btn'); if(btn) btn.disabled=true;
+  // Nếu đang có cache hiển thị thì cập nhật ở nền, không xoá bảng bằng trạng thái chờ
+  if(!opts.silent) setLoadState('⏳ Đang tải Agent List + CSAT Weekly…');
+  try{
+    // Gọi song song 2 nguồn để giảm ~1 nửa thời gian chờ
+    const [a,c]=await Promise.all([jsonpGet('agent'),jsonpGet('csat')]);
+    if(!a||!a.ok) throw new Error('Agent List: '+((a&&a.error)||'không đọc được'));
+    if(!c||!c.ok) throw new Error('CSAT Weekly: '+((c&&c.error)||'không đọc được'));
+    document.getElementById('input-agent').value=a.tsv||'';
+    document.getElementById('input-csat').value=c.tsv||'';
+    if(!opts.silent) setLoadState('⏳ Đang xử lý…');
+    parseAndApply();
+    if(!G.ready) throw new Error('Tải được data nhưng parse lỗi — kiểm tra cột/format sheet');
+    saveCache(a.tsv||'',c.tsv||'');   // lưu backup cho lần mở sau
+    setLoadState('✓ Đã cập nhật lúc '+fmtTime(Date.now())+' ('+G.curAgents.length+' agents)','ok');
+    setTimeout(()=>setLoadState(''),5000);
+  }catch(err){
+    const cache=loadCache();
+    if(cache && G.ready){
+      // Vẫn giữ data backup đang hiển thị, chỉ báo nhẹ
+      const why = err.message==='auth' ? 'chưa đăng nhập' : err.message;
+      setLoadState('⚠️ Chưa tải được data mới ('+why+') · đang dùng backup lúc '+fmtTime(cache.t)+'. Bấm ⟳ để thử lại.','err');
+    } else if(err.message==='auth'){
+      setLoadState('❌ Chưa đăng nhập Shopee / bị chặn cookie. <a href="'+DEFAULT_SHEET_URL+'" target="_blank" style="color:#5b9cf6">Mở đăng nhập</a> rồi bấm ⟳','err');
+    } else {
+      setLoadState('❌ '+err.message+' — bấm ⟳ để thử lại','err');
+    }
+  } finally { if(btn) btn.disabled=false; }
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  const fromCache=renderFromCache();      // hiển thị ngay từ backup nếu có (tức thì)
+  autoLoadData({silent:fromCache});       // rồi cập nhật data mới ở nền
+  setInterval(()=>autoLoadData({silent:true}), REFRESH_MS);  // tự làm mới mỗi 30 phút khi tab mở
+});
+
+/* ================================================================
+   TAB "Treatment tháng" — đọc /treatment-monthly/data.json (cùng domain)
+   Đếm số record: Overall / Non-Treatment / Treatment × Buyer/Seller/Multi, MoM
+   ================================================================ */
+var TRT_DATA=null, TRT_LOADING=false, TRT_LOADED=false;
+var TRT_SEGS=['Buyer','Seller','Multi'];
+var TRT_GROUPS=[{key:'Overall',label:'Overall MCVN'},{key:'Non',label:'Non-Treatment'},{key:'Treat',label:'Treatment'}];
+function trtMonthLabel(mk){var m=/^(\d{4})-(\d{2})$/.exec(mk);return m?('Th'+(+m[2])+'/'+m[1]):mk;}
+function trtGv(mk,g,seg){var d=(TRT_DATA.data[mk]||{})[seg]||{treatment:0,non:0};if(g==='Treat')return d.treatment||0;if(g==='Non')return d.non||0;return (d.treatment||0)+(d.non||0);}
+function trtHc(mk,g,seg){ if(!TRT_DATA.hc) return null; var st=g==='Treat'?'treat':(g==='Non'?'non':'all'); var m=TRT_DATA.hc[mk]||{}; var v=m[st+'|'+(seg||'all')]; return (v==null?null:v); }
+function trtHcCell(v){ return (v==null?'—':v); }
+function trtLO(mk,g,seg){
+  function lo(s){var d=(TRT_DATA.data[mk]||{})[s]||{};
+    if(g==='Treat')return{L:d.treatL||0,O:d.treatO||0};
+    if(g==='Non')return{L:d.nonL||0,O:d.nonO||0};
+    return{L:(d.treatL||0)+(d.nonL||0),O:(d.treatO||0)+(d.nonO||0)};}
+  if(seg&&seg!=='all')return lo(seg);
+  var L=0,O=0;TRT_SEGS.forEach(function(s){var x=lo(s);L+=x.L;O+=x.O;});return{L:L,O:O};
+}
+function trtCsat(mk,g,seg){var x=trtLO(mk,g,seg);return x.O?(x.L/x.O*100):null;}
+function trtCsatCell(v){return v==null?'—':v.toFixed(1)+'%';}
+function trtCsatMom(cv,pv){
+  if(cv==null||pv==null)return '<span style="color:var(--t3)">—</span>';
+  var d=cv-pv;
+  if(Math.abs(d)<0.05)return '<span style="color:var(--t3)">0</span>';
+  return d>0?('<span style="color:var(--green);font-weight:700">+'+d.toFixed(1)+' ▲</span>')
+            :('<span style="color:var(--red);font-weight:700">'+d.toFixed(1)+' ▼</span>');
+}
+function trtGroupTotal(mk,g){return TRT_SEGS.reduce(function(s,seg){return s+trtGv(mk,g,seg);},0);}
+function trtGrand(mk){return trtGroupTotal(mk,'Overall');}
+function trtMom(cur,prev){
+  if(prev===0&&cur===0)return '<span style="color:var(--t3)">—</span>';
+  if(prev===0)return '<span style="color:var(--green)">mới</span>';
+  var d=(cur-prev)/prev*100;
+  if(Math.abs(d)<0.05)return '<span style="color:var(--t3)">0%</span>';
+  return d>0?('<span style="color:var(--green);font-weight:700">+'+d.toFixed(1)+'% ▲</span>')
+            :('<span style="color:var(--red);font-weight:700">'+d.toFixed(1)+'% ▼</span>');
+}
+function trtContrib(v,tot){return tot?(v/tot*100).toFixed(0)+'%':'—';}
+async function loadTreatment(force){
+  if(TRT_LOADING) return; if(TRT_LOADED && !force) return;
+  TRT_LOADING=true;
+  var em=document.getElementById('trt-empty-msg'); if(em) em.textContent='Đang tải dữ liệu tháng…';
+  document.getElementById('trt-empty').style.display=''; document.getElementById('trt-content').style.display='none';
+  try{
+    var res=await fetch('/treatment-monthly/data.json?t='+Date.now());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    TRT_DATA=await res.json();
+    if(TRT_DATA.placeholder || !TRT_DATA.months || !TRT_DATA.months.length){
+      if(em) em.innerHTML='Chưa có dữ liệu tháng.<br><span style="font-size:11px">Chạy <b>setup</b> trong Apps Script (treatment-monthly) rồi bấm ⟳.</span>';
+      TRT_LOADED=true; return;
+    }
+    var sel=document.getElementById('trt-month'); var keep=sel.value;
+    sel.innerHTML=TRT_DATA.months.slice().reverse().map(function(m){return '<option value="'+m+'">'+trtMonthLabel(m)+'</option>';}).join('');
+    if(keep && TRT_DATA.months.indexOf(keep)>=0) sel.value=keep;
+    document.getElementById('trt-empty').style.display='none'; document.getElementById('trt-content').style.display='';
+    renderTreatment();
+    var c=TRT_DATA.counts||{}; var st=document.getElementById('trt-stamp');
+    if(st) st.textContent='Cập nhật: '+(TRT_DATA.lastUpdatedText||'—')+' · '+(c.rowsUsed||0)+' record · '+TRT_DATA.months.length+' tháng';
+    TRT_LOADED=true;
+  }catch(e){
+    if(em) em.textContent='Không tải được data ('+e.message+'). Bấm ⟳ để thử lại.';
+    document.getElementById('trt-empty').style.display=''; document.getElementById('trt-content').style.display='none';
+  }finally{ TRT_LOADING=false; }
+}
+function renderTreatment(){
+  if(!TRT_DATA || !TRT_DATA.months) return;
+  var months=TRT_DATA.months, sel=document.getElementById('trt-month');
+  var cur=(sel.value && months.indexOf(sel.value)>=0)?sel.value:months[months.length-1];
+  var idx=months.indexOf(cur), prev=idx>0?months[idx-1]:null;
+  document.getElementById('trt-cmp').textContent = prev?('so với '+trtMonthLabel(prev)):'(không có tháng trước)';
+  var gTot=trtGrand(cur), rows='';
+  TRT_GROUPS.forEach(function(g){
+    var gc=trtGroupTotal(cur,g.key), gp=prev?trtGroupTotal(prev,g.key):0;
+    var ghcCell = g.key==='Treat' ? trtHcCell(trtHc(cur,g.key,'all')) : '';
+    var gCsC=trtCsat(cur,g.key,'all'), gCsP=prev?trtCsat(prev,g.key,'all'):null;
+    rows+='<tr class="grp0"><td>'+g.label+'</td><td>'+ghcCell+'</td><td>'+trtCsatCell(gCsC)+'</td><td>'+(prev?trtCsatCell(gCsP):'—')+'</td><td>'+(prev?trtCsatMom(gCsC,gCsP):'—')+'</td><td>'+trtContrib(gc,gTot)+'</td></tr>';
+    TRT_SEGS.forEach(function(seg){
+      var c=trtGv(cur,g.key,seg);
+      var shcCell = g.key==='Treat' ? trtHcCell(trtHc(cur,g.key,seg)) : '';
+      var sCsC=trtCsat(cur,g.key,seg), sCsP=prev?trtCsat(prev,g.key,seg):null;
+      rows+='<tr class="grp1"><td>'+seg+'</td><td>'+shcCell+'</td><td>'+trtCsatCell(sCsC)+'</td><td>'+(prev?trtCsatCell(sCsP):'—')+'</td><td>'+(prev?trtCsatMom(sCsC,sCsP):'—')+'</td><td>'+trtContrib(c,gTot)+'</td></tr>';
+    });
+  });
+  document.getElementById('trt-tbl').innerHTML='<thead><tr><th>Nhóm</th><th>HC '+trtMonthLabel(cur)+'</th><th>CSAT '+trtMonthLabel(cur)+'</th><th>CSAT '+(prev?trtMonthLabel(prev):'—')+'</th><th>CSAT MoM</th><th>% đóng góp</th></tr></thead><tbody>'+rows+'</tbody>';
+  var alm=TRT_DATA.agentListMonths||[], unc=months.filter(function(m){return alm.indexOf(m)<0;});
+  document.getElementById('trt-coverage').textContent = unc.length?('⚠️ Agent List không có data các tháng: '+unc.map(trtMonthLabel).join(', ')+' → các tháng này 100% "Không action".'):'';
+}
+</script>
+<script src="quarterly.js?v=20261014-monthly"></script>
+<script src="/lantern-companion/lantern.js?v=20260918-1" defer></script>
+<script defer src="/assets/dashboard-data-privacy.js?v=20261015-1"></script>
+</body>
+</html>
