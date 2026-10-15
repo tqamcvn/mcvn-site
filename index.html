@@ -213,9 +213,6 @@
 
     <button class="primary-btn" id="login-btn">Đăng nhập</button>
 
-    <div class="alt-row">
-      <button class="link-btn" id="email-login-link">Quên mật khẩu?</button>
-    </div>
 
     <div class="org-note">
       <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -453,7 +450,6 @@ document.addEventListener('DOMContentLoaded', async function init() {
   const login = () => runLoginAction(passwordLogin, 'login-form', 'error-note');
   const save = () => runLoginAction(savePassword, 'setpw-form', 'setpw-error');
   $('login-btn').addEventListener('click', login);
-  $('email-login-link').addEventListener('click', () => runLoginAction(sendMagicLink, 'login-form', 'error-note'));
   $('savepw-btn').addEventListener('click', save);
   $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
   $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
