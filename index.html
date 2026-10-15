@@ -317,6 +317,14 @@ function readUrlError() {
   return desc ? decodeURIComponent(desc.replace(/\+/g, ' ')) : '';
 }
 
+// Capture the callback before Supabase can automatically consume URL tokens.
+const emailCallbackQuery = new URLSearchParams(location.search);
+const emailCallbackHash = new URLSearchParams(location.hash.replace(/^#/, ''));
+const hasEmailCallback = ['access_token', 'refresh_token', 'code', 'token_hash', 'type', 'error', 'error_code', 'error_description']
+  .some(key => emailCallbackQuery.has(key) || emailCallbackHash.has(key));
+const blockedLegacyEmailLink = hasEmailCallback && emailCallbackQuery.get('email_link') !== '20261015-v2';
+if (blockedLegacyEmailLink) history.replaceState(null, '', location.pathname);
+
 const ACCESS_ERROR_MESSAGE = 'Úi, có lỗi xảy ra rồi! Bạn liên hệ team TQA để được hỗ trợ nhé.';
 async function showAccessError() {
   try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
@@ -395,7 +403,7 @@ async function sendMagicLink() {
     await showAccessError();
     return;
   }
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + '/' } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + '/?email_link=20261015-v2' } });
   if (error) {
     show('login-form');
     const m = (error.message || '').toLowerCase();
@@ -433,7 +441,7 @@ async function savePassword() {
 function loginClient() {
   if (!sb) {
     if (!window.supabase || !window.supabase.createClient) throw new Error('Chưa tải được dịch vụ đăng nhập. Tải lại trang để thử lại.');
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { detectSessionInUrl: !blockedLegacyEmailLink } });
   }
   return sb;
 }
@@ -450,7 +458,7 @@ document.addEventListener('DOMContentLoaded', async function init() {
   $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
   $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
 
-  if (new URLSearchParams(location.search).get('access') === 'error') {
+  if (blockedLegacyEmailLink || new URLSearchParams(location.search).get('access') === 'error') {
     loginClient();
     await showAccessError();
     history.replaceState(null, '', location.pathname);
