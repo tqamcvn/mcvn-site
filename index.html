@@ -459,9 +459,11 @@ document.addEventListener('DOMContentLoaded', async function init() {
 
   const urlErr = readUrlError();
   if (urlErr) {
-    show('login-form');
-    err('error-note', 'Đăng nhập không thành công. (' + urlErr + ')');
+    // Link cũ/hết hạn phải dừng ngay, kể cả trình duyệt còn session.
     history.replaceState(null, '', location.pathname);
+    loginClient();
+    await showAccessError();
+    return;
   }
 
   try {
