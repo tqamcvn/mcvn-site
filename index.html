@@ -128,12 +128,66 @@
   #access-error-dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
   #access-error-dialog h2 { font-size: 20px; margin-bottom: 12px; }
   #access-error-dialog p { font-size: 14px; line-height: 1.65; margin-bottom: 22px; }
+
+  :root { --scene: #d95750; --scene-ink: #fff5dc; --panel: #11263d; --page: #eeeee5; --button: #d95750; }
+  body { background: var(--page); padding: 40px 24px; }
+  .login-shell { width: min(980px, 100%); display: grid; grid-template-columns: 1fr 1fr; min-height: 620px; border-radius: 14px; overflow: hidden; box-shadow: 0 24px 70px #15243133, 0 3px 12px #15243118; }
+  .welcome { background: var(--scene); color: var(--scene-ink); padding: 38px 40px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
+  .welcome-brand { font-size: 11px; letter-spacing: 3px; font-weight: 650; }
+  .welcome-copy { margin-top: 58px; max-width: 320px; }
+  .welcome-copy h1 { font-size: clamp(23px, 2.6vw, 30px); line-height: 1.45; font-weight: 500; letter-spacing: -.7px; }
+  .welcome-copy p { font-size: 13px; line-height: 1.8; margin-top: 15px; opacity: .9; }
+  .rocket-art { width: 100%; max-width: 320px; margin: auto 0 8px; min-height: 210px; }
+  .welcome-footer { font-size: 10px; letter-spacing: 2px; opacity: .85; }
+  .card { width: 100%; max-width: none; background: var(--panel); border: 0; border-radius: 0; padding: 46px 48px; box-shadow: none; display: flex; flex-direction: column; justify-content: center; color: #f5f7fb; }
+  .card-brand { margin-bottom: 30px; } .brand-name { color: #f5f7fb; } .brand-sub { color: #bac7d6; }
+  .logo-mark { background: #ffffff0c; border-color: #ffffff22; }
+  .divider { background: #ffffff20; margin-bottom: 30px; }
+  .card-title { color: #fff; font-size: 27px; margin-bottom: 10px; font-weight: 500; }
+  .card-sub { color: #bac7d6; margin-bottom: 30px; }
+  .field-label { color: #e6edf5; font-size: 11px; letter-spacing: 1px; margin-bottom: 8px; }
+  .email-input { background: transparent; color: #fff; border: 0; border-bottom: 1px solid #8192a577; border-radius: 0; padding: 12px 0; margin-bottom: 26px; font-size: 14px; }
+  .email-input::placeholder { color: #a8b8ca; opacity: 1; font-size: 12px; }
+  .email-input:focus { border-color: var(--scene-ink); box-shadow: 0 2px 0 var(--scene-ink); }
+  .primary-btn { background: var(--button); border: 0; color: #fff; border-radius: 24px; padding: 13px 24px; font-weight: 600; }
+  .primary-btn:hover { background: var(--button); filter: brightness(1.12); }
+  .primary-btn:focus-visible, .link-btn:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+  .link-btn, .link-btn:hover { color: #e3ebf5; text-underline-offset: 4px; }
+  .org-note { color: #bac7d6; background: transparent; border: 0; padding: 0; font-size: 11px; display: block; text-align: center; margin-top: 28px; }
+  .org-note .info-icon { display: none; }
+  .state-label { color: #d5dfeb; }
+  .error-note { background: #542e39; border-color: #a75864; color: #ffe4e6; }
+  #access-error-dialog .primary-btn { background: var(--button); }
+  @media (max-width: 680px) {
+    body { padding: 20px 16px; align-items: flex-start; }
+    .login-shell { grid-template-columns: 1fr; min-height: 0; max-width: 440px; }
+    .welcome { padding: 26px 28px 24px; } .welcome-copy { margin-top: 22px; }
+    .welcome-copy h1 { font-size: 23px; } .welcome-copy p { margin-top: 8px; }
+    .rocket-art { min-height: 0; height: 135px; max-width: 210px; margin: 8px 0 0; }
+    .welcome-footer { display: none; } .card { padding: 30px 28px 34px; }
+    .card-brand { margin-bottom: 20px; } .divider { margin-bottom: 24px; }
+  }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 </head>
 <body>
 
-<div class="card">
+<main class="login-shell">
+<section class="welcome" aria-labelledby="welcome-title">
+  <div class="welcome-brand">✧ &nbsp; TEAM QA MCVN</div>
+  <div class="welcome-copy">
+    <h1 id="welcome-title">Cùng một team,<br>cùng nhau tỏa sáng.</h1>
+    <p id="welcome-caption">Một chút tập trung, một chút niềm vui.<br>Mình cùng bắt đầu ngày mới nhé!</p>
+  </div>
+  <svg class="rocket-art" viewBox="0 0 320 250" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <g opacity=".65" stroke-width="1.5"><path d="M44 66l5 5m0-5l-5 5M255 48l5 5m0-5l-5 5M78 125l5 5m0-5l-5 5M254 131l5 5m0-5l-5 5M113 33l4 4m0-4l-4 4M218 85l5 5m0-5l-5 5"/><circle cx="199" cy="23" r="2"/><circle cx="35" cy="151" r="2"/></g>
+    <path d="M142 142c-4-26 0-58 18-82 18 24 22 56 18 82l-18-9-18 9Z" stroke-width="3.5"/><circle cx="160" cy="108" r="5" fill="currentColor" stroke="none"/>
+    <path d="M141 122c-11 6-17 18-16 33l17-13m37-20c11 6 17 18 16 33l-17-13M150 151v17m20-17v17m-10-23v38" stroke-width="3.5"/>
+    <path d="M104 183c0-9 12-12 16-5m-29 14c-6-10-19-9-23-4m148-5c0-9-12-12-16-5m29 14c6-10 19-9 23-4M43 218c65-29 169-29 234 0M24 226l9-4m254 0 9 4"/>
+  </svg>
+  <div class="welcome-footer">SMALL STEPS. GREAT TEAM. ✧</div>
+</section>
+<section class="card" aria-label="Đăng nhập Team QA MCVN">
   <div class="card-brand">
     <div class="logo-mark" aria-hidden="true">✨</div>
     <div>
@@ -204,7 +258,36 @@
     <div class="spinner"></div>
     <div class="state-label">Đã đăng nhập. Đang chuyển tới dashboard...</div>
   </div>
-</div>
+</section>
+</main>
+
+<script>
+(function () {
+  const palettes = [
+    ['#d95750','#fff5dc','#11263d','#eeeee5','#cf4842'],
+    ['#39776b','#f5f0d8','#142f35','#e8ede5','#287465'],
+    ['#8065a4','#fff3df','#26243e','#eeeaf0','#785794'],
+    ['#b75c42','#fff5de','#262d3b','#f2ece2','#b4553c'],
+    ['#416d9d','#f5f1d9','#172b44','#e9edf2','#3e6c9f'],
+    ['#9c576f','#fff1df','#302638','#f2e9e9','#a14e6b']
+  ];
+  const messages = [
+    ['Cùng một team, cùng nhau tỏa sáng.', 'Một chút tập trung, một chút niềm vui. Mình cùng bắt đầu ngày mới nhé!'],
+    ['Sẵn sàng cất cánh cùng team chưa?', 'Thắt dây an toàn, mang theo nụ cười. Hôm nay mình cùng làm thật tốt nhé!'],
+    ['Việc khó có team. Ngày vui có bạn.', 'Thêm một người đồng đội, thêm một lý do để hôm nay thật tuyệt.'],
+    ['Một chút chỉn chu. Một ngày rực rỡ.', 'Từng chi tiết nhỏ làm nên trải nghiệm lớn. Cùng nhau chăm chút nhé!'],
+    ['Chào đồng đội, lên chuyến thôi!', 'Hành trình hôm nay sẽ vui hơn khi có bạn. Team mình cùng tiến nhé!'],
+    ['Mang năng lượng tốt, đón điều thật vui.', 'Hít thở một chút, mỉm cười một chút. Bạn đã sẵn sàng rồi đó!'],
+    ['Mỗi ngày một bước, cả team tiến xa.', 'Không cần hoàn hảo ngay. Chỉ cần mình cùng nhau tốt hơn mỗi ngày.'],
+    ['Cà phê đã có. Đồng đội đã đây.', 'Nạp một chút năng lượng, thêm một chút yêu nghề. Bắt đầu thôi nào!']
+  ];
+  const palette = palettes[Math.floor(Math.random() * palettes.length)];
+  ['--scene','--scene-ink','--panel','--page','--button'].forEach((key, i) => document.documentElement.style.setProperty(key, palette[i]));
+  const message = messages[Math.floor(Math.random() * messages.length)];
+  document.getElementById('welcome-title').textContent = message[0];
+  document.getElementById('welcome-caption').textContent = message[1];
+})();
+</script>
 
 <script>
 /* ================================================================= *
