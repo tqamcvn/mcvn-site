@@ -230,7 +230,14 @@ function readUrlError() {
   return desc ? decodeURIComponent(desc.replace(/\+/g, ' ')) : '';
 }
 
-// Sau khi có session: kiểm tra domain, rồi quyết định đặt mật khẩu hay vào dashboard.
+const ACCESS_ERROR_MESSAGE = 'Úi, có lỗi xảy ra rồi! Bạn liên hệ team TQA để được hỗ trợ nhé.';
+async function showAccessError() {
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
+  show('login-form');
+  err('error-note', ACCESS_ERROR_MESSAGE);
+}
+
+// Kiểm tra quyền trước cả đặt mật khẩu và chuyển dashboard.
 async function afterSession(session) {
   if (!session) { show('login-form'); return; }
   const email = (session.user.email || '').toLowerCase();
@@ -238,6 +245,17 @@ async function afterSession(session) {
     await sb.auth.signOut();
     show('login-form');
     err('error-note', 'Tài khoản ' + email + ' không được phép.');
+    return;
+  }
+  try {
+    const { data, error } = await sb.from('app_users')
+      .select('active').eq('email', email).maybeSingle();
+    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) {
+      await showAccessError();
+      return;
+    }
+  } catch (e) {
+    await showAccessError();
     return;
   }
   const passwordSet = session.user.user_metadata && session.user.user_metadata.password_set === true;
@@ -309,8 +327,8 @@ async function savePassword() {
     err('setpw-error', 'Không lưu được: ' + error.message);
     return;
   }
-  show('success-state');
-  setTimeout(() => location.replace('dashboard.html?v=20261009-settings-1'), 500);
+  const { data: { session } } = await sb.auth.getSession();
+  await afterSession(session);
 }
 
 // supabase-js được nạp bằng defer nên đã sẵn sàng trước khi DOMContentLoaded chạy.
@@ -333,6 +351,13 @@ document.addEventListener('DOMContentLoaded', async function init() {
   $('savepw-btn').addEventListener('click', save);
   $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
   $('np2').addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+
+  if (new URLSearchParams(location.search).get('access') === 'error') {
+    loginClient();
+    await showAccessError();
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
 
   const urlErr = readUrlError();
   if (urlErr) {

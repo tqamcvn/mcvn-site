@@ -1225,12 +1225,12 @@ async function renderUser() {
       .select('full_name, role, team, active')
       .eq('email', email)
       .maybeSingle();
-    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) { location.replace('/'); return; }
+    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) { location.replace('/?access=error'); return; }
     if (data) {
       if (data.full_name) name = data.full_name;
       if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }
     }
-  } catch (e) { location.replace('/'); return; }
+  } catch (e) { location.replace('/?access=error'); return; }
 
   // Tên do user tự đặt trong Hồ sơ được ưu tiên cao nhất.
   if (meta.display_name) name = meta.display_name;
