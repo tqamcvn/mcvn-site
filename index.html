@@ -387,7 +387,13 @@ async function sendMagicLink() {
   }
   $('loading-label').textContent = 'Đang gửi link...';
   show('loading-state');
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + '/' } });
+  // Kiểm tra danh sách được cấp quyền cho cả hai domain trước khi gửi email.
+  const { data: allowed, error: accessError } = await sb.rpc('login_recovery_allowed', { p_email: email });
+  if (accessError || allowed !== true) {
+    await showAccessError();
+    return;
+  }
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + '/' } });
   if (error) {
     show('login-form');
     const m = (error.message || '').toLowerCase();
