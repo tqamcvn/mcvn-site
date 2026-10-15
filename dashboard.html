@@ -1215,17 +1215,17 @@ async function renderUser() {
   const meta = u.user_metadata || {};
   let name = meta.full_name || meta.name || email.split('@')[0];
   let picture = meta.avatar || meta.avatar_url || meta.picture || '';
-  // @shopee.com chưa có dòng được mặc định IH; tài khoản ngoài cần dòng đang hoạt động.
-  let role = domainOf(email) === 'shopee.com' ? 'IH' : 'Member';
+  // Mọi tài khoản cần được setup và đang hoạt động, không ngoại lệ theo domain.
+  let role = 'Member';
 
   // Lấy vai trò từ bảng app_users (RLS chỉ cho đọc dòng của chính mình).
-  let rawRole = domainOf(email) === 'shopee.com' ? 'IH' : '';
+  let rawRole = '';
   try {
     const { data, error } = await sb.from('app_users')
       .select('full_name, role, team, active')
       .eq('email', email)
       .maybeSingle();
-    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) { location.replace('/?access=error'); return; }
+    if (error || !data || data.active !== true) { location.replace('/?access=error'); return; }
     if (data) {
       if (data.full_name) name = data.full_name;
       if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }

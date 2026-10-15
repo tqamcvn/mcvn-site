@@ -18,7 +18,7 @@
     var email=(ss.user.email||"").toLowerCase();
     if(DOMS.indexOf(email.split("@")[1]||"")<0){ await sb.auth.signOut(); deny(); return; }
     var access=await sb.from("app_users").select("role, active").eq("email",email).maybeSingle();
-    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ deny(); return; }
+    if(access.error || !access.data || access.data.active!==true){ deny(); return; }
     document.documentElement.style.visibility="";
   }catch(e){ deny(); }
 })();

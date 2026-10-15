@@ -20,7 +20,7 @@
     var role=""; try{ var d=(await sb.from("app_users").select("role").eq("email",email).maybeSingle()).data; if(d) role=d.role||""; }catch(e){}
     if((email.split("@")[1]||"")==="shopee.com" || role.trim().toUpperCase()==="IH"){ deny(); return; }
     var access=await sb.from("app_users").select("role, active").eq("email",email).maybeSingle();
-    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ deny(); return; }
+    if(access.error || !access.data || access.data.active!==true){ deny(); return; }
     if(QA_ONLY){
       var role=(access.data && access.data.role)||"";
       if(!(/qa/i.test(role)||role==="Trainer")){ deny(); return; }

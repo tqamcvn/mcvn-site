@@ -340,7 +340,7 @@ async function afterSession(session) {
   try {
     const { data, error } = await sb.from('app_users')
       .select('active').eq('email', email).maybeSingle();
-    if (error || (data && data.active !== true) || (!data && domainOf(email) !== 'shopee.com')) {
+    if (error || !data || data.active !== true) {
       await showAccessError();
       return;
     }
@@ -367,6 +367,8 @@ async function passwordLogin() {
 
   $('loading-label').textContent = 'Đang đăng nhập...';
   show('loading-state');
+  const { data: allowed, error: accessError } = await sb.rpc('login_recovery_allowed', { p_email: email });
+  if (accessError || allowed !== true) { await showAccessError(); return; }
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     show('login-form');

@@ -27,7 +27,7 @@ var QA_MAP={"ngocquy.tranthi.cs@shopeemobile-external.com":"03. Sup QA Tran Thi 
     var email=(s.user.email||"").toLowerCase();
     if(DOMS.indexOf((email.split("@")[1]||""))<0){ await sb.auth.signOut(); go("/"); return; }
     var access=await startupRequest(sb.from("app_users").select("role,full_name,active").eq("email",email).maybeSingle());
-    if(access.error || (access.data && access.data.active!==true) || (!access.data && email.split("@")[1]!=="shopee.com")){ fail("Tài khoản chưa có quyền truy cập CS Performance hoặc đã bị vô hiệu hóa."); return; }
+    if(access.error || !access.data || access.data.active!==true){ fail("Tài khoản chưa có quyền truy cập CS Performance hoặc đã bị vô hiệu hóa."); return; }
     var d=access.data,role=d?(d.role||""):"IH",fullName=d?(d.full_name||""):"";
     if(ALLOW.indexOf(role.trim().toLowerCase())<0){ fail("Tài khoản chưa có quyền truy cập CS Performance. Vui lòng liên hệ quản trị viên kiểm tra quyền TQA."); return; }
     window.__QA_USER={ email:email, role:role, label:(QA_MAP[email]||fullName||email) }; window.__CSP_SUPA=sb;
