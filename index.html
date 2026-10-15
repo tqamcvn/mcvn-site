@@ -124,6 +124,10 @@
     display: flex; align-items: center; justify-content: center;
   }
   .mail-icon svg { width: 22px; height: 22px; color: var(--accent); }
+  #access-error-dialog { position: fixed; inset: 0; margin: auto; width: min(360px, calc(100% - 40px)); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid var(--gray-200); border-radius: 16px; padding: 28px; color: var(--gray-900); background: var(--white); box-shadow: var(--shadow-md); }
+  #access-error-dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
+  #access-error-dialog h2 { font-size: 20px; margin-bottom: 12px; }
+  #access-error-dialog p { font-size: 14px; line-height: 1.65; margin-bottom: 22px; }
 </style>
 <script src="/assets/tqa-i18n.js" defer></script>
 </head>
@@ -234,7 +238,10 @@ const ACCESS_ERROR_MESSAGE = 'Úi, có lỗi xảy ra rồi! Bạn liên hệ te
 async function showAccessError() {
   try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
   show('login-form');
-  err('error-note', ACCESS_ERROR_MESSAGE);
+  clearErr('error-note');
+  const dialog = $('access-error-dialog');
+  $('access-error-message').textContent = 'Bạn liên hệ team TQA để được hỗ trợ nhé.';
+  if (!dialog.open) dialog.showModal();
 }
 
 // Kiểm tra quyền trước cả đặt mật khẩu và chuyển dashboard.
@@ -378,5 +385,10 @@ document.addEventListener('DOMContentLoaded', async function init() {
 });
 </script>
 
+<dialog id="access-error-dialog" aria-labelledby="access-error-title" aria-describedby="access-error-message">
+  <h2 id="access-error-title">Úi, có lỗi xảy ra rồi!</h2>
+  <p id="access-error-message"></p>
+  <form method="dialog"><button class="primary-btn" autofocus>Đã hiểu</button></form>
+</dialog>
 </body>
 </html>
