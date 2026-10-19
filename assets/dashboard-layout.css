@@ -31,3 +31,27 @@
  .tool-btn { padding:7px; }
  .tool-btn span { display:none; }
 }
+
+/* A welcoming home with clear, evenly spaced shortcuts. */
+.hero { gap:32px; padding:48px 32px; }
+body.glass-navigation .hero { background:transparent; background-image:none; border:0; box-shadow:none; backdrop-filter:none; }
+.hero-top { gap:30px; width:100%; }
+.hero-avatar { width:48px; height:48px; font-size:18px; }
+.hero-info { gap:12px; }
+.hero-greeting { font-size:16px; font-weight:600; margin:0; }
+.hero-name { font-size:clamp(28px,3.6vw,48px); line-height:1.22; letter-spacing:-1px; margin:4px 0; overflow-wrap:anywhere; }
+.hero-name::after { content:' ✨'; font-size:.8em; }
+.hero-meta { opacity:.8; }
+body.glass-navigation .quote-block,.quote-block { background:transparent; background-image:none; box-shadow:none; border:0; padding:8px 12px; max-width:640px; }
+.quote-text { font-size:17px; line-height:1.7; }
+.home-shortcuts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; width:100%; max-width:900px; margin-top:18px; text-align:left; }
+.home-shortcut { display:flex; align-items:center; gap:16px; min-width:0; min-height:88px; padding:20px 22px; border:1px solid var(--gray-200); border-radius:16px; background:var(--white); box-shadow:0 2px 4px #172b4d06; color:var(--gray-900); font:inherit; font-size:15px; font-weight:600; text-decoration:none; cursor:pointer; transition:transform .16s,box-shadow .16s; }
+.home-shortcut:hover { transform:translateY(-3px); box-shadow:0 8px 24px #172b4d12; }
+.home-shortcut:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.shortcut-icon { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; border-radius:13px; font-size:25px; }
+.shortcut-blue { background:#e8f2ff;color:#1683ff; }.shortcut-rose { background:#ffe9ee;color:#f34b78; }.shortcut-purple { background:#f5eaff;color:#af50ed; }.shortcut-amber { background:#fff3df;color:#eb9200; }.shortcut-teal { background:#e0f8f5;color:#00a89d; }
+.shortcut-arrow { margin-left:auto; color:var(--gray-400); font-size:24px; font-weight:400; }
+body.ops-view .home-shortcut.qa-only { display:none; }
+@media(max-width:1050px) { .home-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .hero { padding:32px 16px;gap:24px; }.hero-top { gap:24px; }.hero-greeting { font-size:13px; }.hero-name { font-size:28px; }.hero-meta { flex-direction:column; }.home-shortcuts { grid-template-columns:1fr; gap:12px; margin-top:0; }.home-shortcut { min-height:76px;padding:16px;gap:12px; }.quote-text { font-size:14px; } }
+@media(prefers-reduced-motion:reduce) { .home-shortcut { transition:none; }.home-shortcut:hover { transform:none; } }
