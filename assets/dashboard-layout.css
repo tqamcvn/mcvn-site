@@ -58,3 +58,25 @@ body.ops-view .home-shortcut.qa-only { display:none; }
 
 /* Account details remain available in settings. */
 .hero-meta { display:none; }
+
+/* Give the quote its own card and make the profile photo more prominent. */
+.hero-avatar { width:88px; height:88px; font-size:30px; flex-shrink:0; }
+body.glass-navigation .quote-block,.quote-block {
+ padding:24px 28px;
+ border:1px solid var(--gray-200);
+ border-radius:20px;
+ background:var(--white);
+ box-shadow:0 4px 18px rgba(29,35,91,.05);
+}
+body.glass-navigation .quote-block {
+ background:rgba(255,255,255,.48);
+ border-color:rgba(255,255,255,.65);
+}
+body.glass-navigation.theme-dark .quote-block {
+ background:rgba(20,30,48,.55);
+ border-color:rgba(255,255,255,.15);
+}
+@media(max-width:700px) {
+ .hero-avatar { width:76px; height:76px; font-size:26px; }
+ body.glass-navigation .quote-block,.quote-block { padding:20px 18px; border-radius:16px; }
+}
