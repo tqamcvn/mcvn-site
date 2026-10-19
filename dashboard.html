@@ -1331,7 +1331,6 @@ function applyLanguage() {
   syncSbTitle();
   if (CUR.name) refreshHeader();
   renderQuote();
-  if (LAST_CSAT_SAVED_AT) csatStamp(LAST_CSAT_SAVED_AT, LAST_CSAT_FROM_CACHE);
   try { if (toolFrame && toolFrame.contentWindow) toolFrame.contentWindow.postMessage({ type:'tqa-language', lang:lang }, '*'); } catch(e) {}
 }
 document.getElementById('lang-vn').addEventListener('click', function(){ localStorage.setItem(LANG_KEY, 'vi'); applyLanguage(); });
