@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<script src="/assets/internal-login-reset.js?v=20261019-1"></script>
+<script src="/assets/session-retry.js?v=20261019-1"></script>
+<script src="/assets/internal-login-reset.js?v=20261019-2"></script>
 <script src="/assets/internal-notice.js?v=20261019-2"></script>
 <script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
 <script src="/assets/dashboard-data-privacy.js?v=20261015"></script>
@@ -1053,13 +1054,18 @@ function fillAvatar(el, name, email, picture) {
 
 // Guard + nạp dữ liệu người dùng. Không có session hoặc sai domain -> về login.
 async function renderUser() {
-  const { data: { session } } = await sb.auth.getSession();
+  let session;
+  try {
+    const result = await sb.auth.getSession();
+    if (result.error) throw result.error;
+    session = result.data.session;
+  } catch (e) { window.TQASessionRetry(); return; }
   if (!session) { location.replace('/'); return; }
 
   const u = session.user;
   const email = (u.email || '').toLowerCase();
   if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' });
     location.replace('/');
     return;
   }
@@ -1077,12 +1083,13 @@ async function renderUser() {
       .select('full_name, role, team, active')
       .eq('email', email)
       .maybeSingle();
-    if (error || !data || data.active !== true) { location.replace('/?access=error'); return; }
+    if (error) throw error;
+    if (!data || data.active !== true) { location.replace('/?access=error'); return; }
     if (data) {
       if (data.full_name) name = data.full_name;
       if (data.role) { rawRole = data.role; role = data.role + (data.team ? ' · ' + data.team : ''); }
     }
-  } catch (e) { location.replace('/?access=error'); return; }
+  } catch (e) { window.TQASessionRetry(); return; }
 
   // Tên do user tự đặt trong Hồ sơ được ưu tiên cao nhất.
   if (meta.display_name) name = meta.display_name;
@@ -1115,7 +1122,7 @@ async function renderUser() {
 async function logout() {
   window.TQADataPrivacy?.purge();
   window.TQAPresence?.stop();
-  try { await sb.auth.signOut(); } catch (e) {}
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
   window.TQADataPrivacy?.signOut();
   location.replace('/');
 }
@@ -1676,7 +1683,7 @@ function showFeedbackNotifs(){
 
 // supabase-js nạp bằng defer -> đã sẵn sàng khi DOMContentLoaded chạy.
 document.addEventListener('DOMContentLoaded', function () {
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
   applyLanguage();
   renderUser();
   loadQuote();

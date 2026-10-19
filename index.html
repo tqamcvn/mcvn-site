@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<script src="/assets/internal-login-reset.js?v=20261019-1"></script>
+<script src="/assets/session-retry.js?v=20261019-1"></script>
+<script src="/assets/internal-login-reset.js?v=20261019-2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TQA MCVN — Đăng nhập</title>
@@ -338,7 +339,7 @@ async function afterSession(session) {
   if (!session) { show('login-form'); return; }
   const email = (session.user.email || '').toLowerCase();
   if (!ALLOWED_DOMAINS.includes(domainOf(email))) {
-    await sb.auth.signOut();
+    await sb.auth.signOut({ scope: 'local' });
     show('login-form');
     err('error-note', 'Tài khoản ' + email + ' không được phép.');
     return;
@@ -346,12 +347,13 @@ async function afterSession(session) {
   try {
     const { data, error } = await sb.from('app_users')
       .select('active').eq('email', email).maybeSingle();
-    if (error || !data || data.active !== true) {
+    if (error) throw error;
+    if (!data || data.active !== true) {
       await showAccessError();
       return;
     }
   } catch (e) {
-    await showAccessError();
+    window.TQASessionRetry();
     return;
   }
   const passwordSet = session.user.user_metadata && session.user.user_metadata.password_set === true;
@@ -439,7 +441,7 @@ async function savePassword() {
 function loginClient() {
   if (!sb) {
     if (!window.supabase || !window.supabase.createClient) throw new Error('Chưa tải được dịch vụ đăng nhập. Tải lại trang để thử lại.');
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { detectSessionInUrl: !blockedLegacyEmailLink } });
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: !blockedLegacyEmailLink } });
   }
   return sb;
 }
