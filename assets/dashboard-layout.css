@@ -1,0 +1,33 @@
+/* Balanced shell after retiring the home CSAT overview. */
+.main { min-width:0; }
+.content:empty { display:none !important; }
+.hero { flex:1; justify-content:center; padding:clamp(24px,5vw,64px) clamp(16px,4vw,48px); min-width:0; }
+.hero-top,.hero-info { max-width:100%; }
+.hero-greeting,.hero-email { overflow-wrap:anywhere; }
+.quote-block { width:100%; max-width:560px; }
+.tool-view { min-width:0; min-height:0; }
+.tool-bar { gap:12px; padding:14px 20px; }
+.tool-bar-title { min-width:0; overflow-wrap:anywhere; }
+.tool-bar-actions { min-width:0; }
+.tool-btn { white-space:nowrap; }
+#tool-frame { min-height:0; }
+@media(max-width:700px) {
+ body:not(.bottom-navigation) .sidebar { width:56px; }
+ body:not(.bottom-navigation) .main { margin-left:calc(56px + var(--gap)*2); }
+ body:not(.bottom-navigation) .sidebar :is(.brand-block,.nav-text,.nav-label,.user-info,.logout-btn,.grp-chev,.sb-toggle) { display:none; }
+ body:not(.bottom-navigation) .sidebar-logo { padding:8px 0 16px; justify-content:center; }
+ body:not(.bottom-navigation) .logo-mark { width:34px;height:34px; }
+ body:not(.bottom-navigation) .nav-item,body:not(.bottom-navigation) .nav-group-head { margin:4px 6px; padding:10px 0; justify-content:center; }
+ body:not(.bottom-navigation) .sidebar-footer { padding:8px 4px; }
+ body:not(.bottom-navigation) .user-chip { margin:0; padding:8px 0; justify-content:center; }
+ body.glass-navigation .hero { margin:10px; }
+ .hero { gap:20px; padding:28px 14px; }
+ .hero-name { font-size:20px; }
+ .hero-meta { gap:8px; }
+ .quote-block { padding:18px 14px; }
+ .tool-bar { padding:12px; gap:10px; }
+ .tool-bar-actions { width:100%; margin-left:0; gap:6px; flex-wrap:wrap; }
+ .dashboard-viewers-host { margin-right:auto; }
+ .tool-btn { padding:7px; }
+ .tool-btn span { display:none; }
+}
