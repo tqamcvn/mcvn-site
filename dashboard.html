@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+<script src="/assets/internal-login-reset.js?v=20261019-1"></script>
+<script src="/assets/internal-notice.js?v=20261019-1"></script>
 <script src="/assets/dashboard-private-data.js?v=20261015-1"></script>
 <script src="/assets/dashboard-data-privacy.js?v=20261015"></script>
 <meta charset="UTF-8">
@@ -776,14 +778,6 @@ body.sb-collapsed .nav-badge { top: 5px; right: 5px; }
   </a>
 
   <div class="nav-label" data-i18n="tools">Tools</div>
-  <a class="nav-item qa-ih" href="/cs-performance/" data-tool="csperf" data-src="/cs-performance/" data-title="CS Performance" title="CS Performance">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span class="nav-text">CS Performance</span>
-  </a>
-  <a class="nav-item" href="/repeatagent/" data-tool="repeatagent" data-src="/repeatagent/" data-title="Repeated Agent" title="Repeated Agent">
-    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <span class="nav-text">Repeated Agent</span>
-  </a>
   <a class="nav-item qa-only" href="/form-an-danh/" data-tool="form" data-src="/form-an-danh/" data-title="Form ẩn danh" title="Form ẩn danh">
     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span class="nav-text" data-i18n="anonymousForm">Form ẩn danh</span>
@@ -1214,6 +1208,7 @@ async function renderUser() {
   document.body.style.visibility = 'visible';
 
   // Thông báo Feedback (MNG phản hồi / hoàn thành) — nạp lần đầu + làm mới định kỳ.
+  window.TQAInternalNotice(sb).catch(console.error);
   loadFeedbackNotifs();
   setInterval(loadFeedbackNotifs, 180000);
 }
